@@ -25,6 +25,14 @@ import string
 from wytch import colors
 from wytch import canvas
 
+HOR_LEFT = 1
+HOR_MID = 2
+HOR_RIGHT = 3
+
+VER_TOP = 1
+VER_MID = 2
+VER_BOT = 3
+
 class View:
 
     def __init__(self):
@@ -206,6 +214,32 @@ class ContainerView(View):
     def size(self):
         return (max([c.size[0] for c in self.children]),
                 max([c.size[1] for c in self.children]))
+
+class Align(ContainerView):
+
+    def __init__(self, halign = HOR_MID, valign = VER_MID):
+        super(Align, self).__init__()
+        self.halign = halign
+        self.valign = valign
+
+    def recalc(self):
+        if not self.canvas:
+            return
+        if self.halign == HOR_LEFT:
+            x = 0
+        elif self.halign == HOR_MID:
+            x = int(self.canvas.width / 2 - self.size[0] / 2)
+        else:
+            x = self.canvas.width - self.size[0]
+        if self.valign == VER_TOP:
+            y = 0
+        elif self.valign == VER_MID:
+            y = int(self.canvas.height / 2 - self.size[1] / 2)
+        else:
+            y = self.canvas.height - self.size[1]
+        subc = canvas.SubCanvas(self.canvas, x, y, self.size[0], self.size[1])
+        for c in self.children:
+            c.canvas = subc
 
 class Box(ContainerView):
 
