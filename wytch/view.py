@@ -388,13 +388,15 @@ class Button(Widget):
 
 class TextInput(Widget):
 
-    def __init__(self, default = "", length = 12, onchange = lambda : None):
+    def __init__(self, default = "", length = 12, onchange = lambda : None,
+            password = False):
         super(TextInput, self).__init__()
         # TODO: Support longer strings
         self.length = length
         self.onchange = onchange
         self.value = default
         self.cursor = len(self.value)
+        self.password = password
 
     def onevent(self, kc):
         if kc.raw in string.ascii_letters + string.digits + \
@@ -423,7 +425,7 @@ class TextInput(Widget):
         self.canvas.clear()
         flg = canvas.BOLD if self.focused else canvas.FAINT
         for i, c in enumerate(self.value + " "):
-            self.canvas.set(i, 0, c,
+            self.canvas.set(i, 0, c if not self.password or i >= len(self.value) else "*",
                     flags = flg | (canvas.UNDERLINE if i == self.cursor else 0))
 
     @property
