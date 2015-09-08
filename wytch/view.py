@@ -158,14 +158,11 @@ class ContainerView(View):
         while at is not self and not at.onevent(kc):
             at = at.parent
 
-        if kc.raw == "\t":
-            return self.focus_next()
-
-        if at is self and kc.isescape:
-            if kc.raw[2] == "B":
-                return self.focus_next()
-            elif kc.raw[2] in ["A", "Z"]:
+        if at is self:
+            if kc.val == "<up>" or kc.val == "\t" and kc.shift:
                 return self.focus_prev()
+            elif kc.val in ["<down>", "\t"]:
+                return self.focus_next()
         return False
 
     def focus_next(self, step = 1):
@@ -399,7 +396,7 @@ class Button(Widget):
         self.onclick = onclick
 
     def onevent(self, kc):
-        if kc.raw == "\r":
+        if kc.val == "\r":
             self.onclick()
             return True
         return False
@@ -433,21 +430,20 @@ class TextInput(Widget):
         self.password = password
 
     def onevent(self, kc):
-        if kc.raw in string.ascii_letters + string.digits + \
-                string.punctuation + " \n":
-            if len(self.value) < self.length:
-                self.cursor += 1
-                self.value = self.value[:self.cursor] + kc.raw + self.value[self.cursor:]
-            return True
-        elif kc.raw == chr(127):
+        if kc.val == chr(127):
             if len(self.value):
                 self.cursor -= 1
                 self.value = self.value[:-1]
             return True
-        elif kc.isescape and kc.raw[2] in ["C", "D"]:
-            if kc.raw[2] == "C" and self.cursor < len(self.value):
+        elif not kc.val[0] in "<!^\r\n\t":
+            if len(self.value) < self.length:
                 self.cursor += 1
-            elif kc.raw[2] == "D" and self.cursor > 0:
+                self.value = self.value[:self.cursor] + kc.val + self.value[self.cursor:]
+            return True
+        elif kc.val in ["<left>", "<right>"]:
+            if kc.val == "<right>" and self.cursor < len(self.value):
+                self.cursor += 1
+            elif kc.val == "<left>" and self.cursor > 0:
                 self.cursor -= 1
             self.render()
             return True

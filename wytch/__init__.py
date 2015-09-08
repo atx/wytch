@@ -40,8 +40,17 @@ def wrapmain(fn):
             c = sys.stdin.read(1)
             if ord(c) == 3:
                 raise KeyboardInterrupt
-            elif ord(c) == 27: # Escape
-                c += sys.stdin.read(2)
+            elif c == "\x1b": # TODO: handle ESC key press
+                # TODO: Figure out how much is this broken on terminals other than xfce4-terminal...
+                c += sys.stdin.read(1)
+                if c[-1] in ["[", "O"]: # CSI and SS3
+                    c += sys.stdin.read(1)
+                    while ord(c[-1]) in range(ord("0"), ord("9") + 1):
+                        c += sys.stdin.read(1)
+                    if c[-1] == ";":
+                        c += sys.stdin.read(1)
+                        while ord(c[-1]) in range(ord("0"), ord("9") + 1):
+                            c += sys.stdin.read(1)
             kc = input.KeyEvent(c)
             root.onevent(kc)
     finally:
