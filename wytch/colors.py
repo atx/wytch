@@ -59,6 +59,11 @@ class Color:
     def __hash__(self):
         return hash((self.r, self.g, self.b))
 
+    def __str__(self):
+        return "<%s.%s r = %02x g = %02x b = %02x>" % \
+                (self.__class__.__module__, self.__class__.__name__,
+                        self.r, self.g, self.b)
+
 
 c256 = [
     Color("#000000"), Color("#800000"), Color("#008000"), Color("#808000"),

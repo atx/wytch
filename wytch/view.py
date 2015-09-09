@@ -110,6 +110,12 @@ class View:
     def focusable(self, f):
         self._focusable = f
 
+    def __str__(self):
+        return "<%s.%s zindex = %d focused = %r focusable = %r size = %r>" % \
+                (self.__class__.__name__, self.__class__.__module__,
+                        self.zindex, self.focused, self.focusable, self.size)
+
+
 class ContainerView(View):
 
     def __init__(self, canvas = None):
@@ -233,6 +239,26 @@ class Align(ContainerView):
         for c in self.children:
             c.canvas = subc
 
+    def __str__(self):
+        if halign == HOR_LEFT:
+            hstr = "HOR_LEFT"
+        elif halign == HOR_MID:
+            hstr = "HOR_MID"
+        else:
+            hstr = "HOR_RIGHT"
+        if valign == VER_TOP:
+            vstr = "VER_TOP"
+        elif valign == VER_MID:
+            vstr = "VER_MID"
+        else:
+            vstr = "VER_BOT"
+        return "<%s.%s zindex = %d focused = %r focusable = %r size = %r " \
+                "halign = %s valign = %s>" % \
+                (self.__class__.__name__, self.__class.__name__,
+                    self.zindex, self.focused, self.focusable, self.size,
+                    hstr, vstr)
+
+
 class Box(ContainerView):
 
     def __init__(self, title = None, bg = colors.BLACK):
@@ -259,6 +285,13 @@ class Box(ContainerView):
     def size(self):
         ss = super(Box, self).size
         return (ss[0] + 4, ss[1] + 2)
+
+    def __str__(self):
+        return "<%s.%s zindex = %d focused = %r focusable = %r size = %r " \
+                "title = \"%s\" bg = %r>" % \
+                (self.__class__.__name__, self.__class__.__name__,
+                    self.zindex, self.focused, self.focusable, self.size,
+                    self.title, self.bg)
 
 
 class Vertical(ContainerView):
@@ -339,6 +372,12 @@ class HLine(View):
     def size(self):
         return (len(self.title) if self.title else 0, 1)
 
+    def __str__(self):
+        return "<%s.%s zindex = %d focused = %r focusable = %r size = %r " \
+                "title = \"%s\">" % \
+                (self.__class__.__module__, self.__class__.__name__,
+                    self.zindex, self.focused, self.focusable, self.title)
+
 
 class Spacer(View):
 
@@ -382,6 +421,13 @@ class Label(Widget):
     def size(self):
         return (len(self.text), 1)
 
+    def __str__(self):
+        return "<%s.%s zindex = %d focused = %r focusable = %r size = %r " \
+                "title = \"%s\" fg = %r bg = %r>" % \
+                (self.__class__.__module__, self.__class__.__name__,
+                    self.zindex, self.focused, self.focusable, self.size,
+                    self.title, self.fg, self.bg)
+
 
 class Button(Widget):
 
@@ -410,6 +456,12 @@ class Button(Widget):
     @property
     def size(self):
         return (len(self.label) + 4, 1)
+
+    def __str__(self):
+        return "<%s.%s zindex = %d focused = %r focusable = %r size = %r " \
+                "label = \"%s\">" % \
+                (self.__class__.__module__, self.__class__.__name__,
+                    self.zindex, self.focused, self.focusable, self.size, self.label)
 
 
 class TextInput(Widget):
@@ -466,3 +518,9 @@ class TextInput(Widget):
     @property
     def size(self):
         return (self.length + 1, 1)
+
+    def __str__(self):
+        return "<%s.%s zindex = %d focused = %r focusable = %r size = %r " \
+                "value = \"%s\"" % \
+                (self.__class__.__module__, self.__class__.__name__,
+                        self.zindex, self.focused, self.focusable, self.value)

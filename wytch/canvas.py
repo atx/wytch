@@ -88,6 +88,11 @@ class Canvas:
         for i, s in enumerate(text):
             self.set(x + i, y, s, fg = fg, bg = bg, flags = flags)
 
+    def __str__(self):
+        return "<%s.%s width = %d height = %d>" % \
+                (self.__class__.__module__, self.__class__.__name__,
+                        self.width, self.height)
+
 
 class ConsoleCanvas(Canvas):
 
@@ -192,3 +197,8 @@ class SubCanvas(Canvas):
             raise ValueError("Coordinates x: %d, y: %d out of bounds" % (x, y))
         self.parent.set(self.x + x, self.y + y, c,
               fg = fg, bg = bg, flags = flags)
+
+    def __str__(self):
+        return "<%s.%s width = %d height = %d x = %d y = %d>" % \
+                (self.__class__.__module__, self.__class__.__name__,
+                        self.width, self.height, self.x, self.y)
