@@ -150,19 +150,14 @@ class ContainerView(View):
 
     def onevent(self, kc):
         super(ContainerView, self).onevent(kc)
-        # Find the deepest element
-        at = self
-        while at.focused_child:
-            at = at.focused_child
-        # Bubble up until handled or until we have to handle it
-        while at is not self and not at.onevent(kc):
-            at = at.parent
-
-        if at is self:
-            if kc.val == "<up>" or kc.val == "\t" and kc.shift:
-                return self.focus_prev()
-            elif kc.val in ["<down>", "\t"]:
-                return self.focus_next()
+        # See if child can handle the event
+        if self.focused_child.onevent(kc):
+            return True
+        # Can we handle it?
+        if kc.val == "<up>" or kc.val == "\t" and kc.shift:
+            return self.focus_prev()
+        elif kc.val in ["<down>", "\t"]:
+            return self.focus_next()
         return False
 
     def focus_next(self, step = 1):
