@@ -22,6 +22,7 @@
 
 import random
 import string
+from math import ceil
 from wytch import colors
 from wytch import canvas
 
@@ -352,6 +353,110 @@ class Horizontal(ContainerView):
             return (0, 0)
         return (sum([max(c.size[0], 1) for c in self.children]),
                 max([c.size[1] for c in self.children]))
+
+
+class Grid(ContainerView):
+
+    class Cell:
+
+        def __init__(self, child, colspan, rowspan):
+            self.child = child
+            self.colspan = colspan
+            self.rowspan = rowspan
+
+    def __init__(self, width, height):
+        super(Grid, self).__init__()
+        self.width = width
+        self.height = height
+        self.grid = [[None] * width for _ in range(height)]
+
+    def set(self, x, y, child, colspan = 1, rowspan = 1):
+        if self.grid[y][x]:
+            self.remove_child(self.grid[y][x].child)
+        self.grid[y][x] = Grid.Cell(child, colspan, rowspan)
+        self.add_child(child)
+
+    def recalc(self):
+        if not self.canvas:
+            pass
+        # Row heights
+        rhs = []
+        self.rhs = rhs
+        over = [None] * len(self.grid)
+        for row in self.grid:
+            rhs.append(1)
+            for i, (c, o) in enumerate(zip(row, over)):
+                if o: # We have some overflow from rowspan > 1
+                    c = o[0] # Cell
+                    rh = o[1] # Remaining height
+                    rr = o[2] # Remaining rows
+                elif not c:
+                    continue
+                else:
+                    rh = max(c.child.size[1], 1)
+                    rr = c.rowspan
+                if rr == 1:
+                    th = rh
+                else:
+                    th = round(rr / rh)
+                    over[i] = (c, rh - round(rr / rh), rr - 1)
+                if th > rhs[-1]:
+                    rhs[-1] = th
+        # Column widths
+        cws = []
+        self.cws = cws
+        over = [None] * len(self.grid[0])
+        for col in zip(*self.grid):
+            cws.append(1)
+            for i, (c, o) in enumerate(zip(col, over)):
+                if o:
+                    c = o[0] # Cell
+                    rw = o[1] # Remaining width
+                    rc = o[2] # Remaining cols
+                elif not c:
+                    continue
+                else:
+                    rw = max(c.child.size[0], 1)
+                    rc = c.colspan
+                if rc == 1:
+                    tw = rw
+                else:
+                    tw = round(rc / rw)
+                    over[i] = (c, rh - tw, rr - 1)
+                if tw > cws[-1]:
+                    cws[-1] = tw
+        # Assign subcanvases
+        aty = 0
+        for ri, row in enumerate(self.grid):
+            atx = 0
+            for ci, c in enumerate(row):
+                if c:
+                    w = 0
+                    for x in cws[ci:ci + c.colspan]:
+                        w += x
+                    h = 0
+                    for x in rhs[ri:ri + c.rowspan]:
+                        h += x
+                    c.child.canvas = \
+                            canvas.SubCanvas(self.canvas, atx, aty,
+                                    w, h)
+                atx += cws[ci]
+            aty += rhs[ri]
+
+    @property
+    def size(self):
+        w = sum(max(max(c.child.size[0] / c.colspan, 1) if c else 0 for c in col)
+                for col in zip(*self.grid))
+        h = sum(max(max(c.child.size[1] / c.rowspan, 1) if c else 0 for c in row)
+                for row in self.grid)
+        return (ceil(w), ceil(h))
+
+    def __str__(self):
+        return "<%s.%s zindex = %d focused = %r focusable = %r size = %r " \
+                "width = %d height = %d>" % \
+                (self.__class__.__module__, self.__class__.__name__,
+                        self.zindex, self.focused, self.focusable,
+                        self.width, self.height)
 
 
 class HLine(View):
