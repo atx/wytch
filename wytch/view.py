@@ -276,6 +276,8 @@ class Box(ContainerView):
             c.canvas = subc
 
     def render(self):
+        if not self.canvas:
+            return
         super(Box, self).render()
         self.canvas.box(0, 0, self.canvas.width - 1, self.canvas.height - 1,
                 bg = self.bg)
@@ -378,7 +380,7 @@ class Grid(ContainerView):
 
     def recalc(self):
         if not self.canvas:
-            pass
+            return
         # Row heights
         rhs = []
         self.rhs = rhs
