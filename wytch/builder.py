@@ -27,9 +27,10 @@ class Builder:
     def __init__(self, view, parent = None):
         self.view = view
         self.parent = parent
+        self.nested = []
 
     def add(self, c):
-        self.view.add_child(c)
+        self.nested.append(Builder(c, parent = self))
         return self
 
     def labels(self, strs, fg = colors.WHITE, bg = colors.BLACK):
@@ -45,7 +46,9 @@ class Builder:
 
     def nest(self, cont):
         #self.view.add_child(cont)
-        return Builder(cont, parent = self)
+        ret = Builder(cont, parent = self)
+        self.nested.append(ret)
+        return ret
 
     def vertical(self, width = 0):
         return self.nest(view.Vertical(width = width))
@@ -62,6 +65,14 @@ class Builder:
             self.parent.endall()
 
     def end(self):
+        return self.parent
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, extype, exval, trace):
+        for b in self.nested:
+            b.__exit__(extype, exval, trace)
         if self.parent:
             self.parent.view.add_child(self.view)
         return self.parent
