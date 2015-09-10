@@ -50,6 +50,14 @@ class Builder:
         self.nested.append(ret)
         return ret
 
+    def align(self, halign = view.HOR_MID, valign = view.VER_MID):
+        return self.nest(view.Align(halign = halign, valign = valign))
+
+    def grid(self, width, height):
+        ret = GridBuilder(view.Grid(width, height), parent = self)
+        self.nested.append(ret)
+        return ret
+
     def vertical(self, width = 0):
         return self.nest(view.Vertical(width = width))
 
@@ -76,3 +84,20 @@ class Builder:
         if self.parent:
             self.parent.view.add_child(self.view)
         return self.parent
+
+class GridBuilder(Builder):
+
+    def __init__(self, view, parent = None):
+        super(GridBuilder, self).__init__(view, parent = parent)
+        self.atx = 0
+        self.aty = 0
+
+    def add(self, c = None, rowspan = 1, colspan = 1):
+        if c:
+            self.view.set(self.atx, self.aty, c,
+                    rowspan = rowspan, colspan = colspan)
+        self.atx += 1
+        if self.atx >= self.view.width:
+            self.atx = 0
+            self.aty += 1
+        return self
