@@ -33,6 +33,8 @@ class Builder:
         self.nested.append(Builder(c, parent = self))
         return self
 
+    __call__ = add
+
     def labels(self, strs, fg = colors.WHITE, bg = colors.BLACK):
         for s in strs:
             self.add(view.Label(s, fg = fg, bg = bg))
@@ -101,3 +103,5 @@ class GridBuilder(Builder):
             self.atx = 0
             self.aty += 1
         return self
+
+    __call__ = add
