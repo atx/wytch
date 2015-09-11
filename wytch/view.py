@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import collections
 import random
 import string
 from math import ceil
@@ -631,3 +632,41 @@ class TextInput(Widget):
                 "value = \"%s\"" % \
                 (self.__class__.__module__, self.__class__.__name__,
                         self.zindex, self.focused, self.focusable, self.value)
+
+
+class Console(Widget):
+
+    def __init__(self, minheight = 8, history = 200):
+        super(Console, self).__init__()
+        # TODO: Should this have input support?
+        self.minheight = minheight
+        self.history = history
+        self._lines = collections.deque(maxlen = self.history)
+        self.focusable = False
+
+    def push(self, line):
+        self._lines.appendleft(line)
+        self.recalc()
+        self.render()
+
+    def recalc(self):
+        if not self.canvas:
+            return
+        nls = collections.deque(maxlen = self.history)
+        for l in self._lines:
+            while self.canvas.width < len(l):
+                nls.append(l[:self.canvas.width])
+                l = l[self.canvas.width:]
+            nls.append(l)
+        self._lines = nls
+
+    def render(self):
+        if not self.canvas:
+            return
+        for i in range(min(self.canvas.height, len(self._lines))):
+            self.canvas.text(0, self.canvas.height - i - 1, self._lines[i] + \
+                    " " * (self.canvas.width - len(self._lines[i])))
+
+    @property
+    def size(self):
+        return (0, self.minheight)

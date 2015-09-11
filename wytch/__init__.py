@@ -23,16 +23,42 @@
 import tty
 import termios
 import sys
+import io
+from functools import wraps
 from wytch import view
 from wytch import canvas
 from wytch import input
+from wytch import builder
 
-def wrapmain(fn):
+def wrapmain(fn, debug = False):
     rootcanvas = canvas.ConsoleCanvas()
     try:
         root = view.ContainerView()
+        vroot = root
         root.canvas = rootcanvas
-        ret = fn(root)
+        if debug:
+            console = view.Console(minheight = 10)
+            vroot = view.ContainerView()
+            with builder.Builder(root) as b:
+                b.vertical() \
+                    .box("Console").add(console).end() \
+                    .add(vroot)
+
+            def _print(*args, sep = " ", end = "\n", file = sys.stdout, flush = False):
+                s = ""
+                for x in args[:-1]:
+                    s += str(x) + sep
+                if args:
+                    s += str(args[-1]) + "\n"
+                else:
+                    s += "\n"
+                for li in s.split("\n")[:-1]:
+                    console.push(li)
+            origprint = print
+            __builtins__["print"] = _print
+
+        ret = fn(vroot)
+        root.recalc()
         root.focused = True
         root.render()
         # Input loop
@@ -54,6 +80,8 @@ def wrapmain(fn):
             kc = input.KeyEvent(c)
             root.onevent(kc)
     finally:
+        if debug:
+            __builtins__["print"] = origprint
         rootcanvas.destroy()
         print() # Newline
 
