@@ -310,7 +310,6 @@ class Vertical(ContainerView):
             return
         h = self.canvas.height
         for c in self.children:
-            c.recalc()
             ch = c.size[1]
             if ch == 0:
                 ch = 1 # TODO 0 means "any height", implement properly...
@@ -339,7 +338,6 @@ class Horizontal(ContainerView):
             return
         w = self.canvas.width
         for c in self.children:
-            c.recalc()
             cw = c.size[0]
             if cw == 0:
                 cw = 1 # TODO 0 means "any height", implement properly...
