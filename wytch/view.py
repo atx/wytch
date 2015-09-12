@@ -642,6 +642,61 @@ class TextInput(Widget):
                         self.zindex, self.focused, self.focusable, self.value)
 
 
+class Decade(Widget):
+
+    def __init__(self, digits, decimals = 0, value = 0, cursor = 0, max = None,
+            min = None):
+        super(Decade, self).__init__()
+        self.digits = digits
+        self.decimals = decimals
+        self.value = value
+        self.cursor = cursor
+        self.max = max
+        self.min = min
+        self._cannegative = self.min < 0
+
+    def onevent(self, kc):
+        if kc.val in ["<right>", "<left>", "+", "-"]:
+            if kc.val == "<right>" and self.cursor > 0:
+                self.cursor -= 1
+            elif kc.val == "<left>" and self.cursor < self.digits:
+                self.cursor += 1
+            if kc.val in ["+", "-"]:
+                delta = 10 ** (self.cursor - self.decimals)
+                if kc.val == "+" and self.value + delta <= self.max:
+                    self.value += delta
+                elif kc.val == "-" and self.value - delta >= self.min:
+                    self.value -= delta
+            self.render()
+            return True
+        return False
+
+    def render(self):
+        if not self.canvas:
+            return
+        self.canvas.clear()
+        ox = int(self.canvas.width / 2 - self.size[0] / 2)
+        sflags = canvas.BOLD if self.focused else 0
+        if self._cannegative:
+            self.canvas.set(ox, 0, "-" if self.value < 0 else " ", flags = sflags)
+            ox += 1
+        val = abs(int(self.value * 10 ** self.decimals))
+        for i in range(self.digits):
+            flags = sflags
+            if i == self.digits - self.decimals:
+                self.canvas.set(ox, 0, ".", flags = flags)
+                ox += 1
+            if i == self.digits - self.cursor - 1:
+                flags = canvas.NEGATIVE
+            self.canvas.set(ox, 0, "%d" % (val / (10 ** (self.digits - i - 1)) % 10),
+                    flags = flags)
+            ox += 1
+
+    @property
+    def size(self):
+        return (self.digits + (1 if self.decimals else 0) + (1 if self._cannegative else 0), 1)
+
+
 class Console(Widget):
 
     def __init__(self, minheight = 8, history = 200):
