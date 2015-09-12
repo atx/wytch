@@ -212,6 +212,8 @@ class ContainerView(View):
 
     @property
     def size(self):
+        if not self.children:
+            return (0, 0)
         return (max([c.size[0] for c in self.children]),
                 max([c.size[1] for c in self.children]))
 
