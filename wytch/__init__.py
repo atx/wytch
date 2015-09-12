@@ -30,19 +30,23 @@ from wytch import canvas
 from wytch import input
 from wytch import builder
 
-def wrapmain(fn, debug = False):
-    rootcanvas = canvas.ConsoleCanvas()
-    try:
-        root = view.ContainerView()
-        vroot = root
-        root.canvas = rootcanvas
-        if debug:
+class Wytch:
+
+    def __init__(self, debug = False):
+        self.debug = debug
+
+    def __enter__(self):
+        rootcanvas = canvas.ConsoleCanvas()
+        self.realroot = view.ContainerView()
+        self.root = self.realroot
+        self.realroot.canvas = rootcanvas
+        if self.debug:
             console = view.Console(minheight = 10)
-            vroot = view.ContainerView()
-            with builder.Builder(root) as b:
+            self.root = view.ContainerView()
+            with builder.Builder(self.realroot) as b:
                 b.vertical() \
                     .box("Console").add(console).end() \
-                    .add(vroot)
+                    .add(self.root)
 
             def _print(*args, sep = " ", end = "\n", file = sys.stdout, flush = False):
                 s = ""
@@ -54,35 +58,42 @@ def wrapmain(fn, debug = False):
                     s += "\n"
                 for li in s.split("\n")[:-1]:
                     console.push(li)
-            origprint = print
+            self.origprint = print
             __builtins__["print"] = _print
+        return self
 
-        ret = fn(vroot)
-        root.recalc()
-        root.focused = True
-        root.render()
+    def _cleanup(self):
+        if self.debug:
+            __builtins__["print"] = self.origprint
+        self.realroot.canvas.destroy()
+        print() # Newline
+
+
+    def __exit__(self, extype, exval, trace):
+        if extype is not None:
+            self._cleanup()
+            return False
         # Input loop
-        while True:
-            c = sys.stdin.read(1)
-            if ord(c) == 3:
-                raise KeyboardInterrupt
-            elif c == "\x1b": # TODO: handle ESC key press
-                # TODO: Figure out how much is this broken on terminals other than xfce4-terminal...
-                c += sys.stdin.read(1)
-                if c[-1] in ["[", "O"]: # CSI and SS3
+        try:
+            self.realroot.recalc()
+            self.root.focused = True
+            self.realroot.render()
+            while True:
+                c = sys.stdin.read(1)
+                if ord(c) == 3:
+                    raise KeyboardInterrupt
+                elif c == "\x1b": # TODO: handle ESC key press
+                    # TODO: Figure out how much is this broken on terminals other than xfce4-terminal...
                     c += sys.stdin.read(1)
-                    while ord(c[-1]) in range(ord("0"), ord("9") + 1):
-                        c += sys.stdin.read(1)
-                    if c[-1] == ";":
+                    if c[-1] in ["[", "O"]: # CSI and SS3
                         c += sys.stdin.read(1)
                         while ord(c[-1]) in range(ord("0"), ord("9") + 1):
                             c += sys.stdin.read(1)
-            kc = input.KeyEvent(c)
-            root.onevent(kc)
-    finally:
-        if debug:
-            __builtins__["print"] = origprint
-        rootcanvas.destroy()
-        print() # Newline
-
-    return ret
+                        if c[-1] == ";":
+                            c += sys.stdin.read(1)
+                            while ord(c[-1]) in range(ord("0"), ord("9") + 1):
+                                c += sys.stdin.read(1)
+                kc = input.KeyEvent(c)
+                self.root.onevent(kc)
+        finally:
+            self._cleanup()
