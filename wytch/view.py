@@ -371,6 +371,16 @@ class Grid(ContainerView):
         self.height = height
         self.grid = [[None] * width for _ in range(height)]
 
+    def onfocus(self):
+        if any([c.focused for c in self.children]):
+            return # The focus came from child
+        # Focus first focusable child starting from top left and walking by columns first
+        for y in range(self.height):
+            for x in range(self.width):
+                if self.grid[y][x] and self.grid[y][x].child.focusable:
+                    self.grid[y][x].child.focused = True
+                    return
+
     def set(self, x, y, child, colspan = 1, rowspan = 1):
         if self.grid[y][x]:
             self.remove_child(self.grid[y][x].child)
