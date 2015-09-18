@@ -27,6 +27,9 @@ import io
 from functools import wraps
 from wytch import view, canvas, input, builder
 
+class WytchExitError(RuntimeError):
+    pass
+
 class Wytch:
 
     def __init__(self, debug = False, ctrlc = True):
@@ -66,6 +69,8 @@ class Wytch:
         self.realroot.canvas.destroy()
         print() # Newline
 
+    def exit(self):
+        raise WytchExitError
 
     def __exit__(self, extype, exval, trace):
         if extype is not None:
@@ -93,5 +98,7 @@ class Wytch:
                                 c += sys.stdin.read(1)
                 kc = input.KeyEvent(c)
                 self.root.onevent(kc)
+        except WytchExitError:
+            pass
         finally:
             self._cleanup()
