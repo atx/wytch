@@ -29,8 +29,9 @@ from wytch import view, canvas, input, builder
 
 class Wytch:
 
-    def __init__(self, debug = False):
+    def __init__(self, debug = False, ctrlc = True):
         self.debug = debug
+        self.ctrlc = ctrlc
 
     def __enter__(self):
         rootcanvas = canvas.ConsoleCanvas()
@@ -77,7 +78,7 @@ class Wytch:
             self.realroot.render()
             while True:
                 c = sys.stdin.read(1)
-                if ord(c) == 3:
+                if self.ctrlc and ord(c) == 3:
                     raise KeyboardInterrupt
                 elif c == "\x1b": # TODO: handle ESC key press
                     # TODO: Figure out how much is this broken on terminals other than xfce4-terminal...
