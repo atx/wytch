@@ -43,6 +43,7 @@ class View:
         self._canvas = None
         self.parent = None
         self._focusable = True
+        self.handlers = []
 
     def onfocus(self):
         pass
@@ -52,7 +53,18 @@ class View:
 
     def onevent(self, kc):
         """Returns True if the event was consumed"""
-        return False
+        handler = None
+        for h in self.handlers:
+            if isinstance(h[0], str):
+                if kc.val == h[0]:
+                    handler = h
+            else:
+                if kc.val in h[0]:
+                    handler = h
+            if handler:
+                handler[1](kc)
+                break
+        return handler != None
 
     def onchildfocused(self, c):
         pass
@@ -553,12 +565,7 @@ class Button(Widget):
         super(Widget, self).__init__()
         self.label = label
         self.onclick = onclick
-
-    def onevent(self, kc):
-        if kc.val == "\r":
-            self.onclick()
-            return True
-        return False
+        self.handlers.append(("\r", lambda _: self.onclick()))
 
     def render(self):
         if not self.canvas:
@@ -593,23 +600,31 @@ class TextInput(Widget):
         self.value = default
         self.cursor = len(self.value)
         self.password = password
+        self.handlers.extend([
+            ("\x7f", self._onbackspace),
+            ("<left>", self._onleft),
+            ("<right>", self._onright)])
+
+    def _onbackspace(self, kc):
+        if len(self.value):
+            self.cursor -= 1
+            self.value = self.value[:-1]
+
+    def _onleft(self, kc):
+        if self.cursor > 0:
+            self.cursor -= 1
+
+    def _onright(self, kc):
+        if self.cursor < len(self.value):
+            self.cursor += 1
 
     def onevent(self, kc):
-        if kc.val == chr(127):
-            if len(self.value):
-                self.cursor -= 1
-                self.value = self.value[:-1]
+        if super(TextInput, self).onevent(kc):
             return True
-        elif not kc.val[0] in "<!^\r\n\t":
+        if not kc.val[0] in "<!^\r\n\t":
             if len(self.value) < self.length:
                 self.cursor += 1
                 self.value = self.value[:self.cursor] + kc.val + self.value[self.cursor:]
-            return True
-        elif kc.val in ["<left>", "<right>"]:
-            if kc.val == "<right>" and self.cursor < len(self.value):
-                self.cursor += 1
-            elif kc.val == "<left>" and self.cursor > 0:
-                self.cursor -= 1
             self.render()
             return True
         return False
@@ -622,6 +637,15 @@ class TextInput(Widget):
         for i, c in enumerate(self.value + " "):
             self.canvas.set(i, 0, c if not self.password or i >= len(self.value) else "*",
                     flags = flg | (canvas.UNDERLINE if i == self.cursor else 0))
+
+    @property
+    def cursor(self):
+        return self._cursor
+
+    @cursor.setter
+    def cursor(self, c):
+        self._cursor = c
+        self.render()
 
     @property
     def value(self):
@@ -656,22 +680,30 @@ class Decade(Widget):
         self.max = max
         self.min = min
         self._cannegative = self.min < 0
+        self.handlers.extend([
+            ("<right>", self._onright),
+            ("<left>", self._onleft),
+            ("+", self._add),
+            ("-", self._sub)])
 
-    def onevent(self, kc):
-        if kc.val in ["<right>", "<left>", "+", "-"]:
-            if kc.val == "<right>" and self.cursor > 0:
-                self.cursor -= 1
-            elif kc.val == "<left>" and self.cursor < self.digits:
-                self.cursor += 1
-            if kc.val in ["+", "-"]:
-                delta = 10 ** (self.cursor - self.decimals)
-                if kc.val == "+" and self.value + delta <= self.max:
-                    self.value += delta
-                elif kc.val == "-" and self.value - delta >= self.min:
-                    self.value -= delta
-            self.render()
-            return True
-        return False
+    def _onright(self, kc):
+        if self.cursor > 0:
+            self.cursor -= 1
+
+    def _onleft(self, kc):
+        if self.cursor < self.digits:
+            self.cursor += 1
+
+    def _delta(self):
+        return 10 ** (self.cursor - self.decimals)
+
+    def _add(self, kc):
+        if self.value + self._delta() <= self.max:
+            self.value += self._delta()
+
+    def _sub(self, kc):
+        if self.value - self._delta() >= self.min:
+            self.value -= self._delta()
 
     def render(self):
         if not self.canvas:
@@ -693,6 +725,24 @@ class Decade(Widget):
             self.canvas.set(ox, 0, "%d" % (val / (10 ** (self.digits - i - 1)) % 10),
                     flags = flags)
             ox += 1
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, v):
+        self._value = v
+        self.render()
+
+    @property
+    def cursor(self):
+        return self._cursor
+
+    @cursor.setter
+    def cursor(self, c):
+        self._cursor = c
+        self.render()
 
     @property
     def size(self):
