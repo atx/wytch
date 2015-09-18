@@ -784,3 +784,28 @@ class Console(Widget):
     @property
     def size(self):
         return (0, self.minheight)
+
+
+class Checkbox(ValueWidget):
+
+    def __init__(self, label = "", checked = False, onchange = lambda w, v: None):
+        super(Checkbox, self).__init__(value = checked, onchange = onchange)
+        self.label = label
+        self.handlers.append((" ", self._change))
+
+    def _change(self, kc):
+        self.value = not self.value
+
+    def render(self):
+        if not self.canvas:
+            return
+        s = "[✓]" if self.value else "[ ]"
+        if self.label:
+            s += " " + self.label
+        x = int(self.canvas.width / 2 - len(s) / 2)
+        self.canvas.text(int(self.canvas.width / 2 - len(s) / 2), 0, s,
+                flags = canvas.NEGATIVE if self.focused else 0)
+
+    @property
+    def size(self):
+        return (3 + (len(self.label) + 1) if self.label else 0, 1)
