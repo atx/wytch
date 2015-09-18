@@ -24,8 +24,7 @@ import collections
 import random
 import string
 from math import ceil
-from wytch import colors
-from wytch import canvas
+from wytch import colors, canvas
 
 HOR_LEFT = 1
 HOR_MID = 2
@@ -228,6 +227,7 @@ class ContainerView(View):
             return (0, 0)
         return (max([c.size[0] for c in self.children]),
                 max([c.size[1] for c in self.children]))
+
 
 class Align(ContainerView):
 
@@ -663,7 +663,7 @@ class TextInput(Widget):
 
     def __str__(self):
         return "<%s.%s zindex = %d focused = %r focusable = %r size = %r " \
-                "value = \"%s\"" % \
+                "value = \"%s\">" % \
                 (self.__class__.__module__, self.__class__.__name__,
                         self.zindex, self.focused, self.focusable, self.value)
 

@@ -25,10 +25,7 @@ import termios
 import sys
 import io
 from functools import wraps
-from wytch import view
-from wytch import canvas
-from wytch import input
-from wytch import builder
+from wytch import view, canvas, input, builder
 
 class Wytch:
 
