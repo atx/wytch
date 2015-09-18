@@ -533,6 +533,24 @@ class Widget(View):
         self.render()
 
 
+class ValueWidget(Widget):
+
+    def __init__(self, value = None, onchange = lambda w, v: None):
+        super(ValueWidget, self).__init__()
+        self._value = value
+        self.onchange = onchange
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, v):
+        self._value = v
+        self.onchange(self, self._value)
+        self.render()
+
+
 class Label(Widget):
 
     def __init__(self, text = "Label", fg = colors.WHITE, bg = colors.BLACK):
@@ -589,11 +607,11 @@ class Button(Widget):
                     self.zindex, self.focused, self.focusable, self.size, self.label)
 
 
-class TextInput(Widget):
+class TextInput(ValueWidget):
 
-    def __init__(self, default = "", length = 12, onchange = lambda : None,
+    def __init__(self, default = "", length = 12, onchange = lambda w, v: None,
             password = False):
-        super(TextInput, self).__init__()
+        super(TextInput, self).__init__(value = default, onchange = onchange)
         # TODO: Support longer strings
         self.length = length
         self.onchange = onchange
@@ -648,16 +666,6 @@ class TextInput(Widget):
         self.render()
 
     @property
-    def value(self):
-        return self._value
-
-    @value.setter
-    def value(self, v):
-        self._value = v
-        self.onchange()
-        self.render()
-
-    @property
     def size(self):
         return (self.length + 1, 1)
 
@@ -668,7 +676,7 @@ class TextInput(Widget):
                         self.zindex, self.focused, self.focusable, self.value)
 
 
-class Decade(Widget):
+class Decade(ValueWidget):
 
     def __init__(self, digits, decimals = 0, value = 0, cursor = 0, max = None,
             min = None):
@@ -725,15 +733,6 @@ class Decade(Widget):
             self.canvas.set(ox, 0, "%d" % (val / (10 ** (self.digits - i - 1)) % 10),
                     flags = flags)
             ox += 1
-
-    @property
-    def value(self):
-        return self._value
-
-    @value.setter
-    def value(self, v):
-        self._value = v
-        self.render()
 
     @property
     def cursor(self):
