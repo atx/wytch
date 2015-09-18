@@ -79,7 +79,8 @@ class Wytch:
         # Input loop
         try:
             self.realroot.recalc()
-            self.root.focused = True
+            if self.root.focusable:
+                self.root.focused = True
             self.realroot.render()
             while True:
                 c = sys.stdin.read(1)
@@ -97,7 +98,8 @@ class Wytch:
                             while ord(c[-1]) in range(ord("0"), ord("9") + 1):
                                 c += sys.stdin.read(1)
                 kc = input.KeyEvent(c)
-                self.root.onevent(kc)
+                if self.root.focused:
+                    self.root.onevent(kc)
         except WytchExitError:
             pass
         finally:
