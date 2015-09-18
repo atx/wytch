@@ -29,7 +29,7 @@ def typed(*types, **kwtypes):
             kws = {}
             for k, v in kwargs.items():
                 t = kwtypes.get(k, None)
-                if t is None or isinstance(v, t):
+                if not t or isinstance(v, t):
                     kws[k] = v
                 else:
                     kws[k] = t(v)
