@@ -293,6 +293,7 @@ class Box(ContainerView):
     def render(self):
         if not self.canvas:
             return
+        self.canvas.clear()
         super(Box, self).render()
         self.canvas.box(0, 0, self.canvas.width - 1, self.canvas.height - 1,
                 bg = self.bg)
