@@ -81,6 +81,8 @@ class Builder:
         return self
 
     def __exit__(self, extype, exval, trace):
+        if extype:
+            return False
         for b in self.nested:
             b.__exit__(extype, exval, trace)
         if self.parent:
