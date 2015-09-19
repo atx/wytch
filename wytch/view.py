@@ -301,8 +301,11 @@ class Box(ContainerView):
 
     @property
     def size(self):
-        ss = super(Box, self).size
-        return (ss[0] + 4, ss[1] + 2)
+        w, h = super(Box, self).size
+        w += 4
+        h += 2
+        w = max(w, len(self.title) + 4)
+        return (w, h)
 
     def __str__(self):
         return "<%s.%s zindex = %d focused = %r focusable = %r size = %r " \
