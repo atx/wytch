@@ -582,11 +582,11 @@ class Label(Widget):
 
 class Button(Widget):
 
-    def __init__(self, label = "Button", onclick = lambda : None):
+    def __init__(self, label = "Button", onclick = lambda w: None):
         super(Widget, self).__init__()
         self.label = label
         self.onclick = onclick
-        self.handlers.append(("\r", lambda _: self.onclick()))
+        self.handlers.append(("\r", lambda _: self.onclick(self)))
 
     def render(self):
         if not self.canvas:
