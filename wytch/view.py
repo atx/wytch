@@ -69,8 +69,21 @@ class View:
         pass
 
     @property
+    def root(self):
+        if self.parent:
+            return self.parent.root
+        else:
+            return self
+
+    @property
     def focused_child(self):
         return None
+
+    @property
+    def focused_leaf(self):
+        if self.focused_child:
+            return self.focused_child.focused_leaf
+        return self
 
     @property
     def focused(self):
