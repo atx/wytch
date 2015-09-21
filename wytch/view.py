@@ -272,21 +272,21 @@ class Align(ContainerView):
             c.canvas = subc
 
     def __str__(self):
-        if halign == HOR_LEFT:
+        if self.halign == HOR_LEFT:
             hstr = "HOR_LEFT"
-        elif halign == HOR_MID:
+        elif self.halign == HOR_MID:
             hstr = "HOR_MID"
         else:
             hstr = "HOR_RIGHT"
-        if valign == VER_TOP:
+        if self.valign == VER_TOP:
             vstr = "VER_TOP"
-        elif valign == VER_MID:
+        elif self.valign == VER_MID:
             vstr = "VER_MID"
         else:
             vstr = "VER_BOT"
         return "<%s.%s zindex = %d focused = %r focusable = %r size = %r " \
                 "halign = %s valign = %s>" % \
-                (self.__class__.__name__, self.__class.__name__,
+                (self.__class__.__name__, self.__class__.__name__,
                     self.zindex, self.focused, self.focusable, self.size,
                     hstr, vstr)
 
@@ -693,7 +693,8 @@ class TextInput(ValueWidget):
         return "<%s.%s zindex = %d focused = %r focusable = %r size = %r " \
                 "value = \"%s\">" % \
                 (self.__class__.__module__, self.__class__.__name__,
-                        self.zindex, self.focused, self.focusable, self.value)
+                        self.zindex, self.focused, self.focusable, self.size,
+                        self.value)
 
 
 class Decade(ValueWidget):
