@@ -321,7 +321,8 @@ class Box(ContainerView):
         w, h = super(Box, self).size
         w += 4
         h += 2
-        w = max(w, len(self.title) + 4)
+        if self.title:
+            w = max(w, len(self.title) + 4)
         return (w, h)
 
     def __str__(self):
