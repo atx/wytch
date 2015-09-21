@@ -107,3 +107,33 @@ class GridBuilder(Builder):
         return self
 
     __call__ = add
+
+
+class Popup(Builder):
+
+    def __init__(self, root):
+        super(Popup, self).__init__(view.ContainerView(), parent = Builder(root))
+        self.view.zindex = 1
+        self._savedfocus = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, extype, exval, trace):
+        if extype:
+            return False
+        for b in self.nested:
+            b.__exit__(extype, exval, trace)
+        return self.parent
+
+    def open(self):
+        self._savedfocus = self.parent.view.focused_leaf
+        self.parent.view.add_child(self.view)
+        self.view.focused = True
+        self.parent.view.render()
+
+    def close(self):
+        self.parent.view.canvas.clear()
+        self.parent.view.remove_child(self.view)
+        self._savedfocus.focused = True
+        self.parent.view.render()
