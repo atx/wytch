@@ -100,7 +100,6 @@ class View:
         if f:
             self.onfocus()
             if self.parent:
-                self.parent.focused = True
                 # Unfocus other children of parent
                 self.parent.onchildfocused(self)
         else:
@@ -150,8 +149,6 @@ class ContainerView(View):
 
     def onfocus(self):
         super(ContainerView, self).onfocus()
-        if any([c.focused for c in self.children]):
-            return # The focus came from child
         # Focus first focusable child
         if len(self.children) > 0:
             for c in self.children:
@@ -168,6 +165,7 @@ class ContainerView(View):
         for c in self.children:
             if c.focused and c != cf:
                 c.focused = False
+        self.focused = True
 
     def _focused_child_index(self):
         for i, c in enumerate(self.children):
@@ -183,7 +181,7 @@ class ContainerView(View):
     def onevent(self, kc):
         super(ContainerView, self).onevent(kc)
         # See if child can handle the event
-        if self.focused_child.onevent(kc):
+        if self.focused_child and self.focused_child.onevent(kc):
             return True
         # Can we handle it?
         if kc.val == "<up>" or kc.val == "\t" and kc.shift:
@@ -216,8 +214,12 @@ class ContainerView(View):
         self.recalc()
 
     def remove_child(self, c):
+        f = c.focused
         c.parent = None
+        c.focused = False
         self.children.remove(c)
+        if f:
+            self.onfocus()
         self.recalc()
 
     def recalc(self):
