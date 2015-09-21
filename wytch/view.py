@@ -830,3 +830,68 @@ class Checkbox(ValueWidget):
     @property
     def size(self):
         return (3 + (len(self.label) + 1) if self.label else 0, 1)
+
+
+class Radio(ValueWidget):
+
+    class Group(list):
+
+        def __init__(self, onchange = lambda w: None):
+            self.members = []
+            self.onchange = onchange
+
+        def selected(self, radio):
+            for m in self.members:
+                if m.value:
+                    return m
+
+        def select(self, radio):
+            if self.selected == radio:
+                return
+            for c in self:
+                if c != radio:
+                    c.value = False
+            self.onchange(radio)
+
+    def __init__(self, label = "", checked = False):
+        super(Radio, self).__init__(value = checked,
+                onchange = self._onchange)
+        self.label = label
+        self.handlers.append(([" ", "\r"], self._toggle))
+        self._group = None
+
+    def _onchange(self, w, v):
+        if v and self.group:
+            self.group.select(self)
+
+    def _toggle(self, kc):
+        self.value = not self.value
+
+    def _tick(self):
+        return "(✓)" if self.value else "( )"
+
+    def render(self):
+        if not self.canvas:
+            return
+        s = self._tick()
+        if self.label:
+            s += " " + self.label
+        x = int(self.canvas.width / 2 - len(s) / 2)
+        self.canvas.text(int(self.canvas.width / 2 - len(s) / 2), 0, s,
+                flags = canvas.NEGATIVE if self.focused else 0)
+
+    @property
+    def group(self):
+        return self._group
+
+    @group.setter
+    def group(self, gr):
+        if self.group is not None:
+            self.group.remove(self)
+        self._group = gr
+        if self.group is not None:
+            self.group.append(self)
+
+    @property
+    def size(self):
+        return (len(self._tick()) + (len(self.label) + 1) if self.label else 0, 1)
