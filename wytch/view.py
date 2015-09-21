@@ -193,13 +193,14 @@ class ContainerView(View):
     def focus_next(self, step = 1):
         if len(self.children) == 0:
             return
-        i, _ = self._focused_child_index()
-        if i is None:
+        i, c = self._focused_child_index()
+        if not i:
             i = 0
 
         i += step
         while i in range(0, len(self.children)):
-            if self.children[i].focusable:
+            if self.children[i].focusable and \
+                    (not c or self.children[i].zindex == c.zindex):
                 self.children[i].focused = True
                 return True
             i += step
