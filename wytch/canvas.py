@@ -24,6 +24,7 @@ import shutil
 import sys
 import termios
 import tty
+from math import copysign
 from functools import reduce
 from wytch import colors
 from wytch.misc import typed
@@ -96,6 +97,30 @@ class Canvas:
     def text(self, x, y, text, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
         for i, s in enumerate(text):
             self.set(x + i, y, s, fg = fg, bg = bg, flags = flags)
+
+    def line(self, x0, y0, x1, y1, c = " ", fg = colors.WHITE, bg = colors.WHITE):
+        # Bresenham's line algorithm - https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+        dx = x1 - x0
+        dy = y1 - y0
+        sy = int(copysign(1, dy))
+        if dx == 0:
+            # The line is vertical
+            for y in range(y0, y1 + sy, sy):
+                self.set(x0, y, c, fg = fg, bg = bg)
+        else:
+            err = 0
+            derr = abs(dy / dx)
+            y = y0
+            sx = int(copysign(1, dx))
+            for x in range(x0, x1 + sx, sx):
+                if self.contains(x, y):
+                    self.set(x, y, c, fg = fg, bg = bg)
+                err += derr
+                while err >= 0.5:
+                    if self.contains(x, y):
+                        self.set(x, y, c, fg = fg, bg = bg)
+                    y += sy
+                    err -= 1
 
     def __str__(self):
         return "<%s.%s width = %d height = %d>" % \
