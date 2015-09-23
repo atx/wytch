@@ -65,6 +65,9 @@ class View:
                 break
         return handler != None
 
+    def onmouse(self, me):
+        pass
+
     def onchildfocused(self, c):
         pass
 
@@ -189,6 +192,19 @@ class ContainerView(View):
         elif kc.val in ["<down>", "\t"]:
             return self.focus_next()
         return False
+
+    def onmouse(self, me):
+        if not self.children:
+            return
+        z = self.children[-1].zindex
+        # Pass the event only to children on the top zindex
+        for c in self.children[::-1]:
+            if c.zindex != z:
+                break
+            sme = me.shifted(c.canvas.x, c.canvas.y)
+            # Will be always true for ContainerView, but could be false for subclasses
+            if c.canvas.contains(sme.x, sme.y):
+                c.onmouse(sme)
 
     def focus_next(self, step = 1):
         if len(self.children) == 0:

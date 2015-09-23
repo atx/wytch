@@ -83,22 +83,41 @@ class Wytch:
                 self.root.focused = True
             self.realroot.render()
             while True:
-                c = sys.stdin.read(1)
-                if self.ctrlc and ord(c) == 3:
-                    raise KeyboardInterrupt
-                elif c == "\x1b": # TODO: handle ESC key press
-                    # TODO: Figure out how much is this broken on terminals other than xfce4-terminal...
-                    c += sys.stdin.read(1)
-                    if c[-1] in ["[", "O"]: # CSI and SS3
+                mouse = False
+                try:
+                    c = sys.stdin.read(1)
+                except UnicodeDecodeError as ude: # UGLY EVIL EVIL!
+                    # Mouse click escape sequences can contain invalid Unicode
+                    mc = ude.object
+                    mouse = True
+                if not mouse:
+                    if self.ctrlc and ord(c[0]) == 3:
+                        raise KeyboardInterrupt
+                    elif c == "\x1b": # TODO: handle ESC key press
+                        # TODO: Figure out how much is this broken on terminals other than xfce4-terminal...
                         c += sys.stdin.read(1)
-                        while ord(c[-1]) in range(ord("0"), ord("9") + 1):
+                        if c[-1] in ["[", "O"]: # CSI and SS3
                             c += sys.stdin.read(1)
-                        if c[-1] == ";":
-                            c += sys.stdin.read(1)
-                            while ord(c[-1]) in range(ord("0"), ord("9") + 1):
-                                c += sys.stdin.read(1)
-                kc = input.KeyEvent(c)
-                if self.root.focused:
+                            if c[-1] == "M":
+                                c += sys.stdin.read(3)
+                                # Encode to bytes as MouseEvent expects that
+                                mc = c.encode("utf-8")
+                                mouse = True
+                            else:
+                                while ord(c[-1]) in range(ord("0"), ord("9") + 1):
+                                    c += sys.stdin.read(1)
+                                if c[-1] == ";":
+                                    c += sys.stdin.read(1)
+                                    while c[-1] in range(ord("0"), ord("9") + 1):
+                                        c += sys.stdin.read(1)
+                if mouse:
+                    # And it's worse and worse...
+                    while mc:
+                        me = input.MouseEvent(mc[:6])
+                        self.root.onmouse(me)
+                        mc = mc[6:]
+                elif self.root.focused:
+                    kc = input.KeyEvent(c)
                     self.root.onevent(kc)
         except WytchExitError:
             pass

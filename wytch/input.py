@@ -103,3 +103,40 @@ class KeyEvent:
     def __str__(self):
         return "<input.KeyEvent shift = %r alt = %r ctrl = %r val = %r>" % \
                 (self.shift, self.alt, self.ctrl, self.val)
+
+
+class MouseEvent:
+
+    LEFT = 0
+    MIDDLE = 1
+    RIGHT = 2
+    RELEASED = 3
+
+    def __init__(self, s = None):
+        if not s:
+            s = b"\x1b[M\x00!!"
+        if s[0:3] != b"\x1b[M" or len(s) != 6:
+            raise ValueError("Invalid escape sequence %r" % s)
+        self.raw = s
+        code = s[3]
+        self.button = code & 0x03
+        self.drag = bool(code & 0x40)
+        self.released = self.button == MouseEvent.RELEASED
+        self.pressed = not self.released and not self.drag
+        # Start at 0 0
+        self.x = s[4] - 32 - 1
+        self.y = s[5] - 32 - 1
+        if self.x < 0:
+            self.x += 255
+        if self.y < 0:
+            self.y += 255
+
+    def shifted(self, x, y):
+        ret = MouseEvent(self.raw)
+        ret.x = self.x - x
+        ret.y = self.y - y
+        return ret
+
+    def __str__(self):
+        return "<input.MouseEvent x = %d y = %d button = %d pressed = %r drag = %r released = %r>" % \
+                (self.x, self.y, self.button, self.pressed, self.drag, self.released)

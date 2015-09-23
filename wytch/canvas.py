@@ -141,7 +141,8 @@ class ConsoleCanvas(Canvas):
         self._oldattrs = termios.tcgetattr(sys.stdin.fileno())
         tty.setraw(sys.stdin.fileno())
         #tty.setcbreak(sys.stdin.fileno())
-        self._send_ansi("l", "?25")
+        self._send_ansi("l", "?25") # Hide cursor
+        self._send_ansi("h", "?1002") # Enable mouse reporting
         self._set_cursor(0, 0)
         self.clear()
 
