@@ -112,6 +112,7 @@ class ConsoleCanvas(Canvas):
 
     def _send_ansi(self, code, *args):
         sys.stdout.write(ansi_escape(code, *args))
+        sys.stdout.flush()
 
     def _send_sgr(self, code, *args):
         self._send_ansi("m", code, *args)
