@@ -51,6 +51,15 @@ def ansi_escape(code, *args):
 
 class Canvas:
 
+    def __init__(self, width, height, x = 0, y = 0):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+
+    def contains(self, x, y):
+        return x >= 0 and y >= 0 and x < self.width and y < self.height
+
     def clear(self):
         for x in range(self.width):
             for y in range(self.height):
@@ -97,7 +106,8 @@ class Canvas:
 class ConsoleCanvas(Canvas):
 
     def __init__(self):
-        self.width, self.height = shutil.get_terminal_size((80, 20))
+        w, h = shutil.get_terminal_size((80, 20))
+        super(ConsoleCanvas, self).__init__(w, h)
         self.cursor_x = None
         self.cursor_y = None
         self._fg_color = None
@@ -159,10 +169,12 @@ class ConsoleCanvas(Canvas):
             self._send_sgr(SGR_CODES[NEGATIVE])
 
     def clear(self):
+        self._set_bg_color(colors.BLACK)
+        self._set_fg_color(colors.WHITE)
         self._send_ansi("J", 2)
 
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
-        if x < 0 or y < 0 or x >= self.width or y >= self.height:
+        if not self.contains(x, y):
             raise ValueError("Coordinates x: %d, y: %d out of bounds" % (x, y))
         self._set_cursor(x + 1, y + 1) # Terminal rows/columns are indexed from 0
         self._set_flags(flags)
@@ -180,21 +192,21 @@ class ConsoleCanvas(Canvas):
         self._set_bg_color(colors.BLACK)
         self.clear()
         self._set_cursor(0, 0)
-        self._send_ansi("h", "?25")
+        self._send_ansi("h", "?25") # Show cursor
+        self._send_ansi("l", "?1002") # Disable mouse
         termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, self._oldattrs)
 
 
 class SubCanvas(Canvas):
 
     def __init__(self, parent, x, y, width, height):
+        super(SubCanvas, self).__init__(width, height, x = x, y = y)
         self.parent = parent
         self.x = x
         self.y = y
-        self.width = width
-        self.height = height
 
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
-        if x < 0 or y < 0 or x >= self.width or y >= self.height:
+        if not self.contains(x, y):
             raise ValueError("Coordinates x: %d, y: %d out of bounds" % (x, y))
         self.parent.set(self.x + x, self.y + y, c,
               fg = fg, bg = bg, flags = flags)
