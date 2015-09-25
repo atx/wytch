@@ -359,16 +359,21 @@ class Vertical(ContainerView):
     def recalc(self):
         if not self.canvas:
             return
-        h = self.canvas.height
+        anyc = sum(c.size[1] == 0 for c in self.children)
+        remh = self.canvas.height - sum(max(c.size[1], 1) for c in self.children)
+        perc = round(remh / anyc) if anyc else 0
+        h = 0
         for c in self.children:
             ch = c.size[1]
-            if ch == 0:
-                ch = 1 # TODO 0 means "any height", implement properly...
-            if ch > h:
-                break
-            c.canvas = canvas.SubCanvas(self.canvas, 0, self.canvas.height - h,
-                    self.canvas.width, ch)
-            h -= ch
+            if ch == 0: # "Any height"
+                if remh > perc:
+                    ch = perc
+                else:
+                    ch = remh
+                remh -= ch
+                ch += 1
+            c.canvas = canvas.SubCanvas(self.canvas, 0, h, self.canvas.width, ch)
+            h += ch
 
     @property
     def size(self):
@@ -387,17 +392,21 @@ class Horizontal(ContainerView):
     def recalc(self):
         if not self.canvas:
             return
-        w = self.canvas.width
+        anyc = sum(c.size[0] == 0 for c in self.children)
+        remw = self.canvas.width - sum(max(c.size[0], 1) for c in self.children)
+        perc = round(remw / anyc) if anyc else 0
+        w = 0
         for c in self.children:
             cw = c.size[0]
-            if cw == 0:
-                cw = 1 # TODO 0 means "any height", implement properly...
-            if cw > w:
-                break
-            c.canvas = canvas.SubCanvas(self.canvas, self.canvas.width - w, 0,
-                   cw, self.canvas.height)
-            w -= cw
-        self._width = self.canvas.width - w
+            if cw == 0: # "Any height"
+                if remw > perc:
+                    cw = perc
+                else:
+                    cw = remw
+                remw -= cw
+                cw += 1
+            c.canvas = canvas.SubCanvas(self.canvas, w, 0, cw, self.canvas.height)
+            w += cw
 
     @property
     def size(self):
