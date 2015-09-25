@@ -70,8 +70,8 @@ class Canvas:
         pass
 
     def square(self, x, y, width, height, bordercolor = colors.WHITE):
-        for xi in range(x, x + width + 1):
-            for yi in range(y, y + height + 1):
+        for xi in range(x, x + width):
+            for yi in range(y, y + height):
                 self.set(xi, yi, " ", fg = bordercolor, bg = bordercolor)
 
     def hline(self, x, y, length, fg = colors.WHITE, bg = colors.BLACK,
