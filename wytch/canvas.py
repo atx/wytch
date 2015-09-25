@@ -62,8 +62,8 @@ class Canvas:
         return x >= 0 and y >= 0 and x < self.width and y < self.height
 
     def clear(self):
-        for x in range(self.width):
-            for y in range(self.height):
+        for y in range(self.height):
+            for x in range(self.width):
                 self.set(x, y, " ")
 
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
