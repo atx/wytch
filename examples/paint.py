@@ -11,6 +11,8 @@ class ColorButton(view.Widget):
         self.color = color
         self.board = board
         self.focusable = False
+        self.hstretch = False
+        self.vstretch = False
 
     def render(self):
         if not self.canvas:
@@ -72,7 +74,7 @@ class DrawingBoard(view.Widget):
 
     @property
     def size(self):
-        return (0, 0)
+        return (1, 1)
 
 with w:
     board = DrawingBoard()

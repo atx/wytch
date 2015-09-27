@@ -43,6 +43,8 @@ class View:
         self.parent = None
         self._focusable = True
         self.handlers = []
+        self._vstretch = True
+        self._hstretch = True
 
     def onfocus(self):
         pass
@@ -123,6 +125,22 @@ class View:
 
     def render(self):
         pass
+
+    @property
+    def hstretch(self):
+        return self._hstretch
+
+    @hstretch.setter
+    def hstretch(self, h):
+        self._hstretch = h
+
+    @property
+    def vstretch(self):
+        return self._vstretch
+
+    @vstretch.setter
+    def vstretch(self, v):
+        self._vstretch = v
 
     @property
     def size(self):
@@ -260,6 +278,14 @@ class ContainerView(View):
         return (max([c.size[0] for c in self.children]),
                 max([c.size[1] for c in self.children]))
 
+    @property
+    def hstretch(self):
+        return any(c.hstretch for c in self.children)
+
+    @property
+    def vstretch(self):
+        return any(c.vstretch for c in self.children)
+
 
 class Align(ContainerView):
 
@@ -359,19 +385,19 @@ class Vertical(ContainerView):
     def recalc(self):
         if not self.canvas:
             return
-        anyc = sum(c.size[1] == 0 for c in self.children)
-        remh = self.canvas.height - sum(max(c.size[1], 1) for c in self.children)
+        anyc = sum(c.vstretch for c in self.children)
+        remh = self.canvas.height - sum(c.size[1] for c in self.children)
         perc = round(remh / anyc) if anyc else 0
         h = 0
         for c in self.children:
             ch = c.size[1]
-            if ch == 0: # "Any height"
+            if c.vstretch: # "Any height"
                 if remh > perc:
                     ch = perc
                 else:
                     ch = remh
                 remh -= ch
-                ch += 1
+                ch += c.size[1]
             c.canvas = canvas.SubCanvas(self.canvas, 0, h, self.canvas.width, ch)
             h += ch
 
@@ -392,26 +418,26 @@ class Horizontal(ContainerView):
     def recalc(self):
         if not self.canvas:
             return
-        anyc = sum(c.size[0] == 0 for c in self.children)
-        remw = self.canvas.width - sum(max(c.size[0], 1) for c in self.children)
+        anyc = sum(c.hstretch for c in self.children)
+        remw = self.canvas.width - sum(c.size[0] for c in self.children)
         perc = round(remw / anyc) if anyc else 0
         w = 0
         for c in self.children:
             cw = c.size[0]
-            if cw == 0: # "Any height"
+            if c.hstretch: # "Any width"
                 if remw > perc:
                     cw = perc
                 else:
                     cw = remw
                 remw -= cw
-                cw += 1
+                cw += c.size[0]
             c.canvas = canvas.SubCanvas(self.canvas, w, 0, cw, self.canvas.height)
             w += cw
 
     @property
     def size(self):
         if len(self.children) == 0:
-            return (0, 0)
+            return (1, 1)
         return (sum([max(c.size[0], 1) for c in self.children]),
                 max([c.size[1] for c in self.children]))
 
@@ -536,6 +562,7 @@ class HLine(View):
         super(HLine, self).__init__()
         self.title = title
         self.focusable = None
+        self.vstretch = False
 
     def render(self):
         if not self.canvas:
@@ -546,7 +573,7 @@ class HLine(View):
 
     @property
     def size(self):
-        return (len(self.title) if self.title else 0, 1)
+        return (len(self.title) if self.title else 1, 1)
 
     def __str__(self):
         return "<%s.%s zindex = %d focused = %r focusable = %r size = %r " \
@@ -557,7 +584,7 @@ class HLine(View):
 
 class Spacer(View):
 
-    def __init__(self, width = 0, height = 0):
+    def __init__(self, width = 1, height = 1):
         super(Spacer, self).__init__()
         self.focusable = False
         self.width = width
@@ -605,6 +632,7 @@ class Label(Widget):
         self.bg = bg
         self.text = text
         self.focusable = False
+        self.vstretch = False
 
     def render(self):
         if not self.canvas:
@@ -630,6 +658,7 @@ class Button(Widget):
         self.label = label
         self.onclick = onclick
         self.handlers.append(("\r", lambda _: self.onclick(self)))
+        self.vstretch = False
 
     def render(self):
         if not self.canvas:
@@ -664,6 +693,7 @@ class TextInput(ValueWidget):
         self.value = default
         self.cursor = len(self.value)
         self.password = password
+        self.vstretch = False
         self.handlers.extend([
             ("\x7f", self._onbackspace),
             ("<left>", self._onleft),
@@ -732,6 +762,7 @@ class Decade(ValueWidget):
         self.decimals = decimals
         self.value = value
         self.cursor = cursor
+        self.vstretch = False
         self.max = max
         self.min = min
         self._cannegative = self.min < 0
@@ -830,7 +861,7 @@ class Console(Widget):
 
     @property
     def size(self):
-        return (0, self.minheight)
+        return (1, self.minheight)
 
 
 class Checkbox(ValueWidget):
@@ -838,6 +869,7 @@ class Checkbox(ValueWidget):
     def __init__(self, label = "", checked = False, onchange = lambda w, v: None):
         super(Checkbox, self).__init__(value = checked, onchange = onchange)
         self.label = label
+        self.vstretch = False
         self.handlers.append((" ", self._change))
 
     def _change(self, kc):
@@ -883,6 +915,7 @@ class Radio(ValueWidget):
         super(Radio, self).__init__(value = checked,
                 onchange = self._onchange)
         self.label = label
+        self.vstretch = False
         self.handlers.append(([" ", "\r"], self._toggle))
         self._group = None
 
