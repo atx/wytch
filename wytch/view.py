@@ -653,11 +653,11 @@ class Label(Widget):
 
 class Button(Widget):
 
-    def __init__(self, label = "Button", onclick = lambda w: None):
+    def __init__(self, label = "Button", onpress = lambda w: None):
         super(Widget, self).__init__()
         self.label = label
-        self.onclick = onclick
-        self.handlers.append(("\r", lambda _: self.onclick(self)))
+        self.onpress = onpress
+        self.handlers.append(("\r", lambda _: self.onpress(self)))
         self.vstretch = False
 
     def render(self):

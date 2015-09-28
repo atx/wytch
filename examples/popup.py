@@ -16,10 +16,10 @@ with w:
             r = view.Radio(s)
             r.group = group
             x.align(halign = view.HOR_LEFT).add(r)
-        x.add(view.Button("Ok", onclick = lambda _: popup.close()))
+        x.add(view.Button("Ok", onpress = lambda _: popup.close()))
     with builder.Builder(w.root) as b:
         b.align().box("Popup demo").vertical() \
             (label) \
             .hline() \
-            (view.Button("Open", onclick = lambda _: popup.open())) \
-            (view.Button("Exit", onclick = lambda _: w.exit()))
+            (view.Button("Open", onpress = lambda _: popup.open())) \
+            (view.Button("Exit", onpress = lambda _: w.exit()))

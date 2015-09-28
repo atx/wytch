@@ -17,7 +17,7 @@ with w:
             (view.Label("Username", fg = colors.BLUE)).spacer(width = 2)(tusr) \
             (view.Label("Password", fg = colors.BLUE))()(tpwd) \
             (rem, colspan = 3)()() \
-            (view.Button("Ok", onclick = lambda _: clicked(tusr.value, tpwd.value)), colspan = 3)
+            (view.Button("Ok", onpress = lambda _: clicked(tusr.value, tpwd.value)), colspan = 3)
 print("Bye %s!" % tusr.value)
 if rem.value:
     print("You will be remembered")
