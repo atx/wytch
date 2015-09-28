@@ -763,8 +763,10 @@ class Decade(ValueWidget):
         self.value = value
         self.cursor = cursor
         self.vstretch = False
-        self.max = max
-        self.min = min
+        self.max = max if max is not None else 10 ** (self.digits - self.decimals) \
+                - 10 ** (-self.decimals)
+        self.min = min if min is not None else -10 ** (self.digits - self.decimals) \
+                + 10 ** (-self.decimals)
         self._cannegative = self.min < 0
         self.handlers.extend([
             ("<right>", self._onright),
@@ -777,7 +779,7 @@ class Decade(ValueWidget):
             self.cursor -= 1
 
     def _onleft(self, kc):
-        if self.cursor < self.digits:
+        if self.cursor < self.digits - 1:
             self.cursor += 1
 
     def _delta(self):
@@ -786,10 +788,14 @@ class Decade(ValueWidget):
     def _add(self, kc):
         if self.value + self._delta() <= self.max:
             self.value += self._delta()
+        else:
+            self.value = self.max
 
     def _sub(self, kc):
         if self.value - self._delta() >= self.min:
             self.value -= self._delta()
+        else:
+            self.value = self.min
 
     def render(self):
         if not self.canvas:
@@ -800,7 +806,7 @@ class Decade(ValueWidget):
         if self._cannegative:
             self.canvas.set(ox, 0, "-" if self.value < 0 else " ", flags = sflags)
             ox += 1
-        val = abs(int(self.value * 10 ** self.decimals))
+        val = abs(round(self.value * 10 ** self.decimals))
         for i in range(self.digits):
             flags = sflags
             if i == self.digits - self.decimals:
