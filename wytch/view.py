@@ -24,7 +24,7 @@ import collections
 import random
 import string
 from math import ceil
-from wytch import colors, canvas
+from wytch import colors, canvas, input
 
 HOR_LEFT = 1
 HOR_MID = 2
@@ -597,6 +597,16 @@ class Spacer(View):
 
 class Widget(View):
 
+    def onmouse(self, me):
+        if me.pressed and me.button == input.MouseEvent.LEFT and self.focusable:
+            if self.focusable and not self.focused:
+                self.focused = True
+            else:
+                self.onclick(me)
+
+    def onclick(self, me):
+        pass
+
     def onfocus(self):
         super(Widget, self).onfocus()
         self.render()
@@ -659,6 +669,9 @@ class Button(Widget):
         self.onpress = onpress
         self.handlers.append(("\r", lambda _: self.onpress(self)))
         self.vstretch = False
+
+    def onclick(self, me):
+        self.onpress(self)
 
     def render(self):
         if not self.canvas:
@@ -878,6 +891,9 @@ class Checkbox(ValueWidget):
         self.vstretch = False
         self.handlers.append((" ", self._change))
 
+    def onclick(self, me):
+        self._change(None)
+
     def _change(self, kc):
         self.value = not self.value
 
@@ -934,6 +950,9 @@ class Radio(ValueWidget):
 
     def _tick(self):
         return "(✓)" if self.value else "( )"
+
+    def onclick(self, me):
+        self._toggle(None)
 
     def render(self):
         if not self.canvas:
