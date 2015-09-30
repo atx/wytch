@@ -67,7 +67,8 @@ class Canvas:
                 self.set(x, y, " ")
 
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
-        pass
+        if not self.contains(x, y):
+            raise ValueError("Coordinates x: %d, y: %d out of bounds" % (x, y))
 
     def square(self, x, y, width, height, bordercolor = colors.WHITE):
         for yi in range(y, y + height):
@@ -200,8 +201,7 @@ class ConsoleCanvas(Canvas):
         self._send_ansi("J", 2)
 
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
-        if not self.contains(x, y):
-            raise ValueError("Coordinates x: %d, y: %d out of bounds" % (x, y))
+        super(ConsoleCanvas, self).set(x, y, c, fg = fg, bg = bg, flags = flags)
         self._set_cursor(x + 1, y + 1) # Terminal rows/columns are indexed from 0
         self._set_flags(flags)
         self._set_fg_color(fg)
@@ -232,8 +232,7 @@ class SubCanvas(Canvas):
         self.y = y
 
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
-        if not self.contains(x, y):
-            raise ValueError("Coordinates x: %d, y: %d out of bounds" % (x, y))
+        super(SubCanvas, self).set(x, y, c, fg = fg, bg = bg, flags = flags)
         self.parent.set(self.x + x, self.y + y, c,
               fg = fg, bg = bg, flags = flags)
 
