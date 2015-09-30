@@ -24,20 +24,49 @@ import tty
 import termios
 import sys
 import io
+import threading
+import time
 from functools import wraps
 from wytch import view, canvas, input, builder
 
 class WytchExitError(RuntimeError):
     pass
 
+class FlushThread(threading.Thread):
+
+    def __init__(self, fps, buffer):
+        super(FlushThread, self).__init__()
+        self.fps = fps
+        self.buffer = buffer
+        self.shouldrun = True
+        self.daemon = True
+
+    def run(self):
+        nxt = 0
+        while self.shouldrun:
+            self.buffer.flush()
+            now = time.time()
+            if now < nxt:
+                time.sleep(nxt - now)
+            nxt = time.time() + 1 / self.fps
+
 class Wytch:
 
-    def __init__(self, debug = False, ctrlc = True):
+    def __init__(self, debug = False, ctrlc = True, buffer = False, fps = 60):
         self.debug = debug
         self.ctrlc = ctrlc
+        self.buffer = buffer
+        self.fps = fps
+        self.flushthread = None
 
     def __enter__(self):
-        rootcanvas = canvas.ConsoleCanvas()
+        self.consolecanvas = canvas.ConsoleCanvas()
+        if self.buffer:
+            rootcanvas = canvas.BufferCanvas(self.consolecanvas)
+            self.flushthread = FlushThread(self.fps, rootcanvas)
+        else:
+            rootcanvas = self.consolecanvas
+
         self.realroot = view.ContainerView()
         self.root = self.realroot
         self.realroot.canvas = rootcanvas
@@ -66,7 +95,10 @@ class Wytch:
     def _cleanup(self):
         if self.debug:
             __builtins__["print"] = self.origprint
-        self.realroot.canvas.destroy()
+        if self.buffer:
+            self.flushthread.shouldrun = False
+            self.flushthread.join()
+        self.consolecanvas.destroy()
         print() # Newline
 
     def exit(self):
@@ -82,6 +114,8 @@ class Wytch:
             if self.root.focusable:
                 self.root.focused = True
             self.realroot.render()
+            if self.buffer:
+                self.flushthread.start()
             while True:
                 mouse = False
                 try:

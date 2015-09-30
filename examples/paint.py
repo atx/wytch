@@ -2,7 +2,7 @@
 
 from wytch import builder, colors, view, input, Wytch
 
-w = Wytch()
+w = Wytch(buffer = True)
 
 class ColorButton(view.Widget):
 

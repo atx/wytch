@@ -223,6 +223,42 @@ class ConsoleCanvas(Canvas):
         termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, self._oldattrs)
 
 
+class BufferCanvas(Canvas):
+
+    class Entry:
+
+        def __init__(self, c, fg, bg, flags):
+            self.c = c
+            self.fg = fg
+            self.bg = bg
+            self.flags = flags
+            self.dirty = True
+
+        def sameval(self, e):
+            return False
+            return self.c == e.c and self.fg == e.fg and self.bg == e.bg \
+                    and self.flags == e.flags
+
+    def __init__(self, parent):
+        super(BufferCanvas, self).__init__(parent.width, parent.height)
+        self.grid = [[None] * self.width for _ in range(self.height)]
+        self.parent = parent
+
+    def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
+        super(BufferCanvas, self).set(x, y, c, fg = fg, bg = bg)
+        e = BufferCanvas.Entry(c, fg, bg, flags)
+        if self.grid[y][x] and e.sameval(self.grid[y][x]):
+            return
+        self.grid[y][x] = e
+
+    def flush(self):
+        for y, row in enumerate(self.grid):
+            for x, v in enumerate(row):
+                if v and v.dirty:
+                    self.parent.set(x, y, v.c, fg = v.fg, bg = v.bg, flags = v.flags)
+                    v.dirty = False
+
+
 class SubCanvas(Canvas):
 
     def __init__(self, parent, x, y, width, height):
