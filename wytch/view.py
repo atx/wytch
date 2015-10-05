@@ -186,7 +186,9 @@ class ContainerView(View):
         for c in self.children:
             if c.focused and c != cf:
                 c.focused = False
-        self.focused = True
+        self._focused = True
+        if self.parent:
+            self.parent.onchildfocused(self)
 
     def _focused_child_index(self):
         for i, c in enumerate(self.children):
