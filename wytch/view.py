@@ -889,7 +889,7 @@ class Checkbox(ValueWidget):
         super(Checkbox, self).__init__(value = checked, onchange = onchange)
         self.label = label
         self.vstretch = False
-        self.handlers.append((" ", self._change))
+        self.handlers.append(([" ", "\r"], self._change))
 
     def onclick(self, me):
         self._change(None)
