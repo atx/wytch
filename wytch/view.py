@@ -763,7 +763,7 @@ class TextInput(ValueWidget):
             return
         self.canvas.clear()
         flg = canvas.UNDERLINE | (canvas.BOLD if self.focused else canvas.FAINT)
-        for i in range(max(self.length, len(self.value)+1)):
+        for i in range(max(self.length, len(self.value)+(self.length-(len(self.value)-self.offset)))):
             c = " " if i >= len(self.value) else ("*" if self.password else self.value[i])
             x = i - self.offset
             if x < 0 or x >= self.length:
