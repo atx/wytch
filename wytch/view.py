@@ -700,38 +700,60 @@ class TextInput(ValueWidget):
     def __init__(self, default = "", length = 12, onchange = lambda w, v: None,
             password = False):
         super(TextInput, self).__init__(value = default, onchange = onchange)
-        # TODO: Support longer strings
         self.length = length
         self.onchange = onchange
         self.value = default
+        self.offset = 0
         self.cursor = len(self.value)
         self.password = password
         self.vstretch = False
         self.handlers.extend([
             ("\x7f", self._onbackspace),
+            ("<delete>", self._ondelete),
             ("<left>", self._onleft),
-            ("<right>", self._onright)])
+            ("<right>", self._onright),
+            ("<home>", self._onhome),
+            ("<end>", self._onend)])
 
     def _onbackspace(self, kc):
-        if len(self.value):
+        if self.cursor > 0:
             self.cursor -= 1
-            self.value = self.value[:-1]
+            if len(self.value) >= self.length:
+                self.offset -= 1
+            self.value = self.value[:self.cursor] + self.value[self.cursor+1:]
+
+    def _ondelete(self, kc):
+        if len(self.value):
+            self.value = self.value[:self.cursor] + self.value[self.cursor+1:]
 
     def _onleft(self, kc):
         if self.cursor > 0:
             self.cursor -= 1
+            if self.cursor < self.offset:
+                self.offset -= 1
 
     def _onright(self, kc):
         if self.cursor < len(self.value):
             self.cursor += 1
+            if self.cursor > self.offset + self.length - 1:
+                self.offset += 1
+
+    def _onhome(self, kc):
+        self.cursor = 0
+        self.offset = 0
+
+    def _onend(self, kc):
+        self.cursor = len(self.value)
+        self.offset = len(self.value) - self.length + 1
 
     def onevent(self, kc):
         if super(TextInput, self).onevent(kc):
             return True
         if not kc.val[0] in "<!^\r\n\t":
-            if len(self.value) < self.length:
-                self.cursor += 1
-                self.value = self.value[:self.cursor] + kc.val + self.value[self.cursor:]
+            self.cursor += 1
+            if self.cursor > self.offset + self.length - 1:
+                self.offset += 1
+            self.value = self.value[:self.cursor-1] + kc.val + self.value[self.cursor-1:]
             self.render()
             return True
         return False
@@ -740,10 +762,15 @@ class TextInput(ValueWidget):
         if not self.canvas:
             return
         self.canvas.clear()
-        flg = canvas.BOLD if self.focused else canvas.FAINT
-        for i, c in enumerate(self.value + " "):
-            self.canvas.set(i, 0, c if not self.password or i >= len(self.value) else "*",
-                    flags = flg | (canvas.UNDERLINE if i == self.cursor else 0))
+        flg = canvas.UNDERLINE | (canvas.BOLD if self.focused else canvas.FAINT)
+        for i in range(max(self.length, len(self.value)+1)):
+            c = " " if i >= len(self.value) else ("*" if self.password else self.value[i])
+            x = i - self.offset
+            if x < 0 or x >= self.length:
+                c = ""
+                x = 0
+            self.canvas.set(x, 0, c,
+                flags = flg | (canvas.NEGATIVE if i == self.cursor and self.focused else 0))
 
     @property
     def cursor(self):
@@ -752,6 +779,15 @@ class TextInput(ValueWidget):
     @cursor.setter
     def cursor(self, c):
         self._cursor = c
+        self.render()
+
+    @property
+    def offset(self):
+        return self._offset
+
+    @offset.setter
+    def offset(self, o):
+        self._offset = o
         self.render()
 
     @property
