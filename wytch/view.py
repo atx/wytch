@@ -753,7 +753,8 @@ class TextInput(ValueWidget):
             self.cursor += 1
             if self.cursor > self.offset + self.length - 1:
                 self.offset += 1
-            self.value = self.value[:self.cursor-1] + kc.val + self.value[self.cursor-1:]
+            self.value = self.value[:self.cursor-1] + kc.val + \
+                    self.value[self.cursor-1:]
             self.render()
             return True
         return False
@@ -763,14 +764,22 @@ class TextInput(ValueWidget):
             return
         self.canvas.clear()
         flg = canvas.UNDERLINE | (canvas.BOLD if self.focused else canvas.FAINT)
-        for i in range(max(self.length, len(self.value)+(self.length-(len(self.value)-self.offset)))):
-            c = " " if i >= len(self.value) else ("*" if self.password else self.value[i])
+        for i in range(
+                max(self.length,
+                len(self.value) + (self.length - (len(self.value) - self.offset)))):
+            if i >= len(self.value):
+                c = " "
+            elif self.password:
+                c = "*"
+            else:
+                c = self.value[i]
             x = i - self.offset
             if x < 0 or x >= self.length:
                 c = ""
                 x = 0
             self.canvas.set(x, 0, c,
-                flags = flg | (canvas.NEGATIVE if i == self.cursor and self.focused else 0))
+                flags = flg |
+                    (canvas.NEGATIVE if i == self.cursor and self.focused else 0))
 
     @property
     def cursor(self):
