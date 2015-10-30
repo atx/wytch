@@ -718,8 +718,7 @@ class TextInput(ValueWidget):
     def _onbackspace(self, kc):
         if self.cursor > 0:
             self.cursor -= 1
-            if len(self.value) >= self.length:
-                self.offset -= 1
+            self.offset -= 1
             self.value = self.value[:self.cursor] + self.value[self.cursor+1:]
 
     def _ondelete(self, kc):
@@ -796,7 +795,7 @@ class TextInput(ValueWidget):
 
     @offset.setter
     def offset(self, o):
-        self._offset = o
+        self._offset = o if o >= 0 else 0
         self.render()
 
     @property
