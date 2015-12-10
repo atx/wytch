@@ -235,7 +235,6 @@ class BufferCanvas(Canvas):
             self.dirty = True
 
         def sameval(self, e):
-            return False
             return self.c == e.c and self.fg == e.fg and self.bg == e.bg \
                     and self.flags == e.flags
 
@@ -243,6 +242,11 @@ class BufferCanvas(Canvas):
         super(BufferCanvas, self).__init__(parent.width, parent.height)
         self.grid = [[None] * self.width for _ in range(self.height)]
         self.parent = parent
+        self._clear = False
+
+    def clear(self):
+        self.grid = [[None] * self.width for _ in range(self.height)]
+        self._clear = True
 
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
         super(BufferCanvas, self).set(x, y, c, fg = fg, bg = bg)
@@ -252,6 +256,9 @@ class BufferCanvas(Canvas):
         self.grid[y][x] = e
 
     def flush(self):
+        if self._clear:
+            self._clear = False
+            self.parent.clear()
         for y, row in enumerate(self.grid):
             for x, v in enumerate(row):
                 if v and v.dirty:
