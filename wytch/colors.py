@@ -52,9 +52,10 @@ class Color:
         return self.n256
 
     def __eq__(self, other):
-        if not isinstance(other, Color):
+        try:
+            return self.r == other.r and self.g == other.g and self.b == other.b
+        except AttributeError:
             return False
-        return self.r == other.r and self.g == other.g and self.b == other.b
 
     def __hash__(self):
         return hash((self.r, self.g, self.b))
