@@ -34,16 +34,18 @@ class WytchExitError(RuntimeError):
 
 class FlushThread(threading.Thread):
 
-    def __init__(self, fps, buffer):
+    def __init__(self, fps, buffer, root):
         super(FlushThread, self).__init__()
         self.fps = fps
         self.buffer = buffer
+        self.root = root
         self.shouldrun = True
         self.daemon = True
 
     def run(self):
         nxt = 0
         while self.shouldrun:
+            self.root.render()
             self.buffer.flush()
             now = time.time()
             if now < nxt:
@@ -63,8 +65,6 @@ class Wytch:
         self.consolecanvas = canvas.ConsoleCanvas()
         rootcanvas = canvas.BufferCanvas(self.consolecanvas,
                                          debug = self.debug_redraw)
-        self.flushthread = FlushThread(self.fps, rootcanvas)
-
         self.realroot = view.ContainerView()
         self.root = self.realroot
         self.realroot.canvas = rootcanvas
@@ -88,6 +88,8 @@ class Wytch:
                     console.push(li)
             self.origprint = print
             __builtins__["print"] = _print
+
+        self.flushthread = FlushThread(self.fps, rootcanvas, self.realroot)
         return self
 
     def _cleanup(self):

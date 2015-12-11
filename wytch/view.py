@@ -611,11 +611,9 @@ class Widget(View):
 
     def onfocus(self):
         super(Widget, self).onfocus()
-        self.render()
 
     def onunfocus(self):
         super(Widget, self).onunfocus()
-        self.render()
 
 
 class ValueWidget(Widget):
@@ -633,7 +631,6 @@ class ValueWidget(Widget):
     def value(self, v):
         self._value = v
         self.onchange(self, self._value)
-        self.render()
 
 
 class Label(Widget):
@@ -756,7 +753,6 @@ class TextInput(ValueWidget):
                 self.offset += 1
             self.value = self.value[:self.cursor-1] + kc.val + \
                     self.value[self.cursor-1:]
-            self.render()
             return True
         return False
 
@@ -789,7 +785,6 @@ class TextInput(ValueWidget):
     @cursor.setter
     def cursor(self, c):
         self._cursor = c
-        self.render()
 
     @property
     def offset(self):
@@ -798,7 +793,6 @@ class TextInput(ValueWidget):
     @offset.setter
     def offset(self, o):
         self._offset = o if o >= 0 else 0
-        self.render()
 
     @property
     def size(self):
@@ -884,7 +878,6 @@ class Decade(ValueWidget):
     @cursor.setter
     def cursor(self, c):
         self._cursor = c
-        self.render()
 
     @property
     def size(self):
@@ -904,7 +897,6 @@ class Console(Widget):
     def push(self, line):
         self._lines.appendleft(line)
         self.recalc()
-        self.render()
 
     def recalc(self):
         if not self.canvas:
