@@ -51,6 +51,9 @@ class Color:
         self.n256, _ = min(enumerate(c256), key = lambda x: self.distance(x[1]))
         return self.n256
 
+    def invert(self):
+        return Color((255 - self.r, 255 - self.g, 255 - self.b))
+
     def __eq__(self, other):
         try:
             return self.r == other.r and self.g == other.g and self.b == other.b
