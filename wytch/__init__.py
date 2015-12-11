@@ -52,7 +52,7 @@ class FlushThread(threading.Thread):
 
 class Wytch:
 
-    def __init__(self, debug = False, debug_redraw = False, ctrlc = True, fps = 60):
+    def __init__(self, debug = False, debug_redraw = False, ctrlc = True, fps = 20):
         self.debug = debug
         self.debug_redraw = debug_redraw
         self.ctrlc = ctrlc
