@@ -52,8 +52,10 @@ class FlushThread(threading.Thread):
 
 class Wytch:
 
-    def __init__(self, debug = False, ctrlc = True, buffer = False, fps = 60):
+    def __init__(self, debug = False, debug_redraw = False, ctrlc = True,
+                 buffer = False, fps = 20):
         self.debug = debug
+        self.debug_redraw = debug_redraw
         self.ctrlc = ctrlc
         self.buffer = buffer
         self.fps = fps
@@ -62,7 +64,8 @@ class Wytch:
     def __enter__(self):
         self.consolecanvas = canvas.ConsoleCanvas()
         if self.buffer:
-            rootcanvas = canvas.BufferCanvas(self.consolecanvas)
+            rootcanvas = canvas.BufferCanvas(self.consolecanvas,
+                                             debug = self.debug_redraw)
             self.flushthread = FlushThread(self.fps, rootcanvas)
         else:
             rootcanvas = self.consolecanvas

@@ -24,6 +24,7 @@ import shutil
 import sys
 import termios
 import tty
+import random
 from math import copysign
 from functools import reduce
 from wytch import colors
@@ -238,10 +239,11 @@ class BufferCanvas(Canvas):
             return self.c == e.c and self.fg == e.fg and self.bg == e.bg \
                     and self.flags == e.flags
 
-    def __init__(self, parent):
+    def __init__(self, parent, debug = False):
         super(BufferCanvas, self).__init__(parent.width, parent.height)
         self.grid = [[None] * self.width for _ in range(self.height)]
         self.parent = parent
+        self.debug = debug
         self._clear = False
 
     def clear(self):
@@ -259,10 +261,16 @@ class BufferCanvas(Canvas):
         if self._clear:
             self._clear = False
             self.parent.clear()
+        if self.debug:
+            bg = random.choice(colors.c256)
+            fg = bg.invert()
         for y, row in enumerate(self.grid):
             for x, v in enumerate(row):
                 if v and v.dirty:
-                    self.parent.set(x, y, v.c, fg = v.fg, bg = v.bg, flags = v.flags)
+                    if not self.debug:
+                        bg = v.bg
+                        fg = v.fg
+                    self.parent.set(x, y, v.c, fg = fg, bg = bg, flags = v.flags)
                     v.dirty = False
 
 
