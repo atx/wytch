@@ -233,29 +233,29 @@ class BufferCanvas(Canvas):
             self.fg = fg
             self.bg = bg
             self.flags = flags
-            self.dirty = True
 
-        def sameval(self, e):
-            return self.c == e.c and self.fg == e.fg and self.bg == e.bg \
-                    and self.flags == e.flags
+        def __eq__(self, e):
+            try:
+                return self.c == e.c and self.fg == e.fg and self.bg == e.bg \
+                        and self.flags == e.flags
+            except AttributeError:
+                return False
 
     def __init__(self, parent, debug = False):
         super(BufferCanvas, self).__init__(parent.width, parent.height)
-        self.grid = [[None] * self.width for _ in range(self.height)]
+        self._grid = [[None] * self.width for _ in range(self.height)]
+        self._cgrid = [[None] * self.width for _ in range(self.height)]
         self.parent = parent
         self.debug = debug
         self._clear = False
 
     def clear(self):
-        self.grid = [[None] * self.width for _ in range(self.height)]
+        self._grid = [[None] * self.width for _ in range(self.height)]
         self._clear = True
 
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
         super(BufferCanvas, self).set(x, y, c, fg = fg, bg = bg)
-        e = BufferCanvas.Entry(c, fg, bg, flags)
-        if self.grid[y][x] and e.sameval(self.grid[y][x]):
-            return
-        self.grid[y][x] = e
+        self._grid[y][x] = BufferCanvas.Entry(c, fg, bg, flags)
 
     def flush(self):
         if self._clear:
@@ -264,14 +264,14 @@ class BufferCanvas(Canvas):
         if self.debug:
             bg = random.choice(colors.c256)
             fg = bg.invert()
-        for y, row in enumerate(self.grid):
-            for x, v in enumerate(row):
-                if v and v.dirty:
+        for y, (row, crow) in enumerate(zip(self._grid, self._cgrid)):
+            for x, (v, cv) in enumerate(zip(row, crow)):
+                if v and (not cv or v != cv):
                     if not self.debug:
                         bg = v.bg
                         fg = v.fg
                     self.parent.set(x, y, v.c, fg = fg, bg = bg, flags = v.flags)
-                    v.dirty = False
+                    self._cgrid[y][x] = v
 
 
 class SubCanvas(Canvas):
