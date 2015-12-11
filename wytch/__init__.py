@@ -52,23 +52,18 @@ class FlushThread(threading.Thread):
 
 class Wytch:
 
-    def __init__(self, debug = False, debug_redraw = False, ctrlc = True,
-                 buffer = False, fps = 20):
+    def __init__(self, debug = False, debug_redraw = False, ctrlc = True, fps = 60):
         self.debug = debug
         self.debug_redraw = debug_redraw
         self.ctrlc = ctrlc
-        self.buffer = buffer
         self.fps = fps
         self.flushthread = None
 
     def __enter__(self):
         self.consolecanvas = canvas.ConsoleCanvas()
-        if self.buffer:
-            rootcanvas = canvas.BufferCanvas(self.consolecanvas,
-                                             debug = self.debug_redraw)
-            self.flushthread = FlushThread(self.fps, rootcanvas)
-        else:
-            rootcanvas = self.consolecanvas
+        rootcanvas = canvas.BufferCanvas(self.consolecanvas,
+                                         debug = self.debug_redraw)
+        self.flushthread = FlushThread(self.fps, rootcanvas)
 
         self.realroot = view.ContainerView()
         self.root = self.realroot
@@ -98,9 +93,8 @@ class Wytch:
     def _cleanup(self):
         if self.debug:
             __builtins__["print"] = self.origprint
-        if self.buffer:
-            self.flushthread.shouldrun = False
-            self.flushthread.join()
+        self.flushthread.shouldrun = False
+        self.flushthread.join()
         self.consolecanvas.destroy()
         print() # Newline
 
@@ -117,8 +111,7 @@ class Wytch:
             if self.root.focusable:
                 self.root.focused = True
             self.realroot.render()
-            if self.buffer:
-                self.flushthread.start()
+            self.flushthread.start()
             while True:
                 mouse = False
                 try:
