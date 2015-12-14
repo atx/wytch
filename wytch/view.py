@@ -249,7 +249,6 @@ class ContainerView(View):
     def add_child(self, c):
         c.parent = self
         self.children.append(c)
-        self.recalc()
 
     def remove_child(self, c):
         f = c.focused
@@ -258,7 +257,6 @@ class ContainerView(View):
         self.children.remove(c)
         if f:
             self.onfocus()
-        self.recalc()
 
     def recalc(self):
         """Called on canvas change an addition/removal of a child"""
@@ -902,7 +900,6 @@ class Console(Widget):
 
     def push(self, line):
         self._lines.appendleft(line)
-        self.recalc()
 
     def recalc(self):
         if not self.canvas:

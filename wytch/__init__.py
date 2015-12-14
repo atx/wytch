@@ -52,6 +52,7 @@ class FlushThread(threading.Thread):
         while self.shouldrun:
             try:
                 self.lock.acquire()
+                self.root.recalc()
                 self.root.render()
                 self.buffer.flush()
                 self.lock.release()
@@ -119,14 +120,12 @@ class Wytch:
 
     def input_loop(self):
         try:
-            self.realroot.recalc()
             if self.root.focusable:
                 self.root.focused = True
             def sigwinch_handler(sn, fr):
                 self.flushthread.lock.acquire()
                 self.consolecanvas.update_size()
                 self.rootcanvas.update_size()
-                self.realroot.recalc()
                 self.flushthread.lock.release()
             signal.signal(signal.SIGWINCH, sigwinch_handler)
             self.flushthread.start()
