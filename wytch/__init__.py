@@ -26,6 +26,8 @@ import sys
 import io
 import threading
 import time
+import traceback
+import select
 from functools import wraps
 from wytch import view, canvas, input, builder
 
@@ -41,16 +43,21 @@ class FlushThread(threading.Thread):
         self.root = root
         self.shouldrun = True
         self.daemon = True
+        self.trace = None
 
     def run(self):
         nxt = 0
         while self.shouldrun:
-            self.root.render()
-            self.buffer.flush()
-            now = time.time()
-            if now < nxt:
-                time.sleep(nxt - now)
-            nxt = time.time() + 1 / self.fps
+            try:
+                self.root.render()
+                self.buffer.flush()
+                now = time.time()
+                if now < nxt:
+                    time.sleep(nxt - now)
+                nxt = time.time() + 1 / self.fps
+            except:
+                self.trace = traceback.format_exc()
+                break
 
 class Wytch:
 
@@ -100,6 +107,8 @@ class Wytch:
             self.flushthread.join()
         self.consolecanvas.destroy()
         print() # Newline
+        if self.flushthread.trace:
+            print(self.flushthread.trace)
 
     def exit(self):
         raise WytchExitError
@@ -113,6 +122,12 @@ class Wytch:
             while True:
                 mouse = False
                 try:
+                    r = select.select([sys.stdin], [], [], 0.1)[0]
+                    if not self.flushthread.is_alive():
+                        # The flush thread died :(
+                        break
+                    if not sys.stdin in r:
+                        continue
                     c = sys.stdin.read(1)
                 except UnicodeDecodeError as ude: # UGLY EVIL EVIL!
                     # Mouse click escape sequences can contain invalid Unicode
