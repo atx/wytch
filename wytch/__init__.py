@@ -103,11 +103,7 @@ class Wytch:
     def exit(self):
         raise WytchExitError
 
-    def __exit__(self, extype, exval, trace):
-        if extype is not None:
-            self._cleanup()
-            return False
-        # Input loop
+    def input_loop(self):
         try:
             self.realroot.recalc()
             if self.root.focusable:
@@ -155,3 +151,9 @@ class Wytch:
             pass
         finally:
             self._cleanup()
+
+    def __exit__(self, extype, exval, trace):
+        if extype is not None:
+            self._cleanup()
+            return False
+        self.input_loop()

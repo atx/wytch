@@ -45,6 +45,7 @@ class View:
         self.handlers = []
         self._vstretch = True
         self._hstretch = True
+        self.display = True
 
     def onfocus(self):
         pass
@@ -173,7 +174,7 @@ class ContainerView(View):
         # Focus first focusable child
         if len(self.children) > 0:
             for c in self.children:
-                if c.focusable:
+                if c.focusable and c.display:
                     c.focused = True
 
     def onunfocus(self):
@@ -235,7 +236,7 @@ class ContainerView(View):
 
         i += step
         while i in range(0, len(self.children)):
-            if self.children[i].focusable and \
+            if self.children[i].focusable and self.children[i].display and \
                     (not c or self.children[i].zindex == c.zindex):
                 self.children[i].focused = True
                 return True
@@ -267,7 +268,8 @@ class ContainerView(View):
 
     def render(self):
         for c in self.children:
-            c.render()
+            if c.display:
+                c.render()
 
     @property
     def focusable(self):
@@ -465,8 +467,9 @@ class Grid(ContainerView):
         # Focus first focusable child starting from top left and walking by columns first
         for y in range(self.height):
             for x in range(self.width):
-                if self.grid[y][x] and self.grid[y][x].child.focusable:
-                    self.grid[y][x].child.focused = True
+                c = self.grid[y][x]
+                if c and c.child.focusable and c.child.display:
+                    c.child.focused = True
                     return
 
     def set(self, x, y, child, colspan = 1, rowspan = 1):
