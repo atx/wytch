@@ -95,8 +95,9 @@ class Wytch:
     def _cleanup(self):
         if self.debug:
             __builtins__["print"] = self.origprint
-        self.flushthread.shouldrun = False
-        self.flushthread.join()
+        if self.flushthread.is_alive():
+            self.flushthread.shouldrun = False
+            self.flushthread.join()
         self.consolecanvas.destroy()
         print() # Newline
 
@@ -108,7 +109,6 @@ class Wytch:
             self.realroot.recalc()
             if self.root.focusable:
                 self.root.focused = True
-            self.realroot.render()
             self.flushthread.start()
             while True:
                 mouse = False
