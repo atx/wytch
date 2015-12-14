@@ -68,8 +68,7 @@ class Canvas:
                 self.set(x, y, " ")
 
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
-        if not self.contains(x, y):
-            raise ValueError("Coordinates x: %d, y: %d out of bounds" % (x, y))
+        pass
 
     def square(self, x, y, width, height, bordercolor = colors.WHITE):
         for yi in range(y, y + height):
@@ -255,7 +254,11 @@ class BufferCanvas(Canvas):
 
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
         super(BufferCanvas, self).set(x, y, c, fg = fg, bg = bg)
-        self._grid[y][x] = BufferCanvas.Entry(c, fg, bg, flags)
+        try:
+            self._grid[y][x] = BufferCanvas.Entry(c, fg, bg, flags)
+        except IndexError:
+            # Ignore out of bounds writes
+            pass
 
     def flush(self):
         if self._clear:
@@ -284,6 +287,8 @@ class SubCanvas(Canvas):
 
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
         super(SubCanvas, self).set(x, y, c, fg = fg, bg = bg, flags = flags)
+        if not self.contains(x, y):
+            raise ValueError("Coordinates x: %d, y: %d out of bounds" % (x, y))
         self.parent.set(self.x + x, self.y + y, c,
               fg = fg, bg = bg, flags = flags)
 
