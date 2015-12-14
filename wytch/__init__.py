@@ -28,6 +28,7 @@ import threading
 import time
 import traceback
 import select
+import signal
 from functools import wraps
 from wytch import view, canvas, input, builder
 
@@ -44,13 +45,16 @@ class FlushThread(threading.Thread):
         self.shouldrun = True
         self.daemon = True
         self.trace = None
+        self.lock = threading.Lock()
 
     def run(self):
         nxt = 0
         while self.shouldrun:
             try:
+                self.lock.acquire()
                 self.root.render()
                 self.buffer.flush()
+                self.lock.release()
                 now = time.time()
                 if now < nxt:
                     time.sleep(nxt - now)
@@ -70,11 +74,11 @@ class Wytch:
 
     def __enter__(self):
         self.consolecanvas = canvas.ConsoleCanvas()
-        rootcanvas = canvas.BufferCanvas(self.consolecanvas,
+        self.rootcanvas = canvas.BufferCanvas(self.consolecanvas,
                                          debug = self.debug_redraw)
         self.realroot = view.ContainerView()
         self.root = self.realroot
-        self.realroot.canvas = rootcanvas
+        self.realroot.canvas = self.rootcanvas
         if self.debug:
             console = view.Console(minheight = 10)
             self.root = view.ContainerView()
@@ -96,7 +100,7 @@ class Wytch:
             self.origprint = print
             __builtins__["print"] = _print
 
-        self.flushthread = FlushThread(self.fps, rootcanvas, self.realroot)
+        self.flushthread = FlushThread(self.fps, self.rootcanvas, self.realroot)
         return self
 
     def _cleanup(self):
@@ -118,11 +122,22 @@ class Wytch:
             self.realroot.recalc()
             if self.root.focusable:
                 self.root.focused = True
+            def sigwinch_handler(sn, fr):
+                self.flushthread.lock.acquire()
+                self.consolecanvas.update_size()
+                self.rootcanvas.update_size()
+                self.realroot.recalc()
+                self.flushthread.lock.release()
+            signal.signal(signal.SIGWINCH, sigwinch_handler)
             self.flushthread.start()
             while True:
                 mouse = False
                 try:
-                    r = select.select([sys.stdin], [], [], 0.1)[0]
+                    try:
+                        r = select.select([sys.stdin], [], [], 0.1)[0]
+                    except InterruptedError:
+                        # Gets thrown on SIGWINCH
+                        continue
                     if not self.flushthread.is_alive():
                         # The flush thread died :(
                         break

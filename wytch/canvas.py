@@ -195,6 +195,11 @@ class ConsoleCanvas(Canvas):
         if flags & NEGATIVE:
             self._send_sgr(SGR_CODES[NEGATIVE])
 
+    def update_size(self):
+        self.width, self.height = shutil.get_terminal_size((80, 20))
+        self._set_cursor(0, 0)
+        self.clear()
+
     def clear(self):
         self._set_bg_color(colors.BLACK)
         self._set_fg_color(colors.WHITE)
@@ -248,8 +253,14 @@ class BufferCanvas(Canvas):
         self.debug = debug
         self._clear = False
 
+    def update_size(self):
+        self.width = self.parent.width
+        self.height = self.parent.height
+        self.clear()
+
     def clear(self):
         self._grid = [[None] * self.width for _ in range(self.height)]
+        self._cgrid = [[None] * self.width for _ in range(self.height)]
         self._clear = True
 
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
