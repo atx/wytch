@@ -179,6 +179,8 @@ class ConsoleCanvas(Canvas):
         if self._flags == flags:
             return
         self._send_sgr(0) # Reset all parameters
+        self._fg_color = colors.WHITE
+        self._bg_color = colors.BLACK
         self._flags = flags
         if flags & BOLD:
             self._send_sgr(SGR_CODES[BOLD])
