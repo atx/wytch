@@ -145,9 +145,7 @@ class View:
 
     @property
     def size(self):
-        if self.canvas:
-            return (self.canvas.width, self.canvas.height)
-        return (1, 1)
+        return (0, 0)
 
     @property
     def focusable(self):
@@ -277,8 +275,8 @@ class ContainerView(View):
     def size(self):
         if not self.children:
             return (0, 0)
-        return (max([c.size[0] for c in self.children]),
-                max([c.size[1] for c in self.children]))
+        return (max(c.size[0] for c in self.children),
+                max(c.size[1] for c in self.children))
 
     @property
     def hstretch(self):
@@ -393,6 +391,8 @@ class Vertical(ContainerView):
         h = 0
         for c in self.children:
             ch = c.size[1]
+            if ch == 0:
+                continue
             if c.vstretch: # "Any height"
                 if remh > perc:
                     ch = perc
@@ -405,10 +405,10 @@ class Vertical(ContainerView):
 
     @property
     def size(self):
-        if len(self.children) == 0:
+        if not self.children:
             return (0, 0)
-        return (max([c.size[0] for c in self.children]),
-                sum([max(c.size[1], 1) for c in self.children]))
+        return (max(c.size[0] for c in self.children),
+                sum(c.size[1] for c in self.children))
 
 
 class Horizontal(ContainerView):
@@ -426,6 +426,8 @@ class Horizontal(ContainerView):
         w = 0
         for c in self.children:
             cw = c.size[0]
+            if cw == 0:
+                continue
             if c.hstretch: # "Any width"
                 if remw > perc:
                     cw = perc
@@ -438,10 +440,10 @@ class Horizontal(ContainerView):
 
     @property
     def size(self):
-        if len(self.children) == 0:
-            return (1, 1)
-        return (sum([max(c.size[0], 1) for c in self.children]),
-                max([c.size[1] for c in self.children]))
+        if not self.children:
+            return (0, 0)
+        return (sum(c.size[0] for c in self.children),
+                max(c.size[1] for c in self.children))
 
 
 class Grid(ContainerView):
@@ -493,7 +495,9 @@ class Grid(ContainerView):
                 elif not c:
                     continue
                 else:
-                    rh = max(c.child.size[1], 1)
+                    rh = c.child.size[1]
+                    if rh == 0:
+                        continue
                     rr = c.rowspan
                 if rr == 1:
                     th = rh
@@ -516,7 +520,9 @@ class Grid(ContainerView):
                 elif not c:
                     continue
                 else:
-                    rw = max(c.child.size[0], 1)
+                    rw = c.child.size[0]
+                    if rw == 0:
+                        continue
                     rc = c.colspan
                 if rc == 1:
                     tw = rw
@@ -545,9 +551,9 @@ class Grid(ContainerView):
 
     @property
     def size(self):
-        w = sum(max(max(c.child.size[0] / c.colspan, 1) if c else 0 for c in col)
+        w = sum(max(c.child.size[0] / c.colspan if c else 0 for c in col)
                 for col in zip(*self.grid))
-        h = sum(max(max(c.child.size[1] / c.rowspan, 1) if c else 0 for c in row)
+        h = sum(max(c.child.size[1] / c.rowspan if c else 0 for c in row)
                 for row in self.grid)
         return (ceil(w), ceil(h))
 
