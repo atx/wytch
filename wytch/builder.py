@@ -130,10 +130,7 @@ class Popup(Builder):
         self._savedfocus = self.parent.view.focused_leaf
         self.parent.view.add_child(self.view)
         self.view.focused = True
-        self.parent.view.render()
 
     def close(self):
-        self.parent.view.canvas.clear()
         self.parent.view.remove_child(self.view)
         self._savedfocus.focused = True
-        self.parent.view.render()
