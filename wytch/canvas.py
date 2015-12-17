@@ -48,6 +48,9 @@ SGR_CODES = {
     NEGATIVE: 7,
 }
 
+CLEAR_FG = colors.WHITE
+CLEAR_BG = colors.BLACK
+
 def ansi_escape(code, *args):
     return "\x1b[" + reduce(lambda i, v: i + str(v) + ";", args[:-1], "") + str(args[-1]) + code
 
@@ -62,10 +65,10 @@ class Canvas:
     def contains(self, x, y):
         return x >= 0 and y >= 0 and x < self.width and y < self.height
 
-    def clear(self):
+    def clear(self, blank = False):
         for y in range(self.height):
             for x in range(self.width):
-                self.set(x, y, " ")
+                self.set(x, y, " ", fg = CLEAR_FG, bg = CLEAR_BG)
 
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
         pass
@@ -145,7 +148,7 @@ class ConsoleCanvas(Canvas):
         self._send_ansi("l", "?25") # Hide cursor
         self._send_ansi("h", "?1002") # Enable mouse reporting
         self._set_cursor(0, 0)
-        self.clear()
+        self.clear(blank = True)
 
     def _send_ansi(self, code, *args):
         sys.stdout.write(ansi_escape(code, *args))
@@ -179,8 +182,8 @@ class ConsoleCanvas(Canvas):
         if self._flags == flags:
             return
         self._send_sgr(0) # Reset all parameters
-        self._fg_color = colors.WHITE
-        self._bg_color = colors.BLACK
+        self._fg_color = CLEAR_FG
+        self._bg_color = CLEAR_BG
         self._flags = flags
         if flags & BOLD:
             self._send_sgr(SGR_CODES[BOLD])
@@ -202,9 +205,10 @@ class ConsoleCanvas(Canvas):
         self._set_cursor(0, 0)
         self.clear()
 
-    def clear(self):
-        self._set_bg_color(colors.BLACK)
-        self._set_fg_color(colors.WHITE)
+    def clear(self, blank = False):
+        if not blank:
+            return super(ConsoleCanvas, self).clear(blank = blank)
+        self._set_flags(0)
         self._send_ansi("J", 2)
 
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
@@ -223,7 +227,7 @@ class ConsoleCanvas(Canvas):
         self._set_flags(0)
         self._set_fg_color(colors.WHITE)
         self._set_bg_color(colors.BLACK)
-        self.clear()
+        self.clear(blank = True)
         self._set_cursor(0, 0)
         self._send_ansi("h", "?25") # Show cursor
         self._send_ansi("l", "?1002") # Disable mouse
@@ -254,16 +258,18 @@ class BufferCanvas(Canvas):
         self.parent = parent
         self.debug = debug
         self._clear = False
+        self._blank = False
 
     def update_size(self):
         self.width = self.parent.width
         self.height = self.parent.height
         self.clear()
 
-    def clear(self):
+    def clear(self, blank = False):
         self._grid = [[None] * self.width for _ in range(self.height)]
-        self._cgrid = [[None] * self.width for _ in range(self.height)]
+        self._cgrid = [[BufferCanvas.Entry(" ", CLEAR_FG, CLEAR_BG, 0)] * self.width for _ in range(self.height)]
         self._clear = True
+        self._blank = blank
 
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
         super(BufferCanvas, self).set(x, y, c, fg = fg, bg = bg)
@@ -276,7 +282,7 @@ class BufferCanvas(Canvas):
     def flush(self):
         if self._clear:
             self._clear = False
-            self.parent.clear()
+            self.parent.clear(blank = self._blank)
         if self.debug:
             bg = random.choice(colors.c256)
             fg = bg.invert()
