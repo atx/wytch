@@ -46,6 +46,7 @@ class View:
         self._vstretch = True
         self._hstretch = True
         self.display = True
+        self._dirty = True
 
     def onfocus(self):
         pass
@@ -155,6 +156,14 @@ class View:
     def focusable(self, f):
         self._focusable = f
 
+    @property
+    def dirty(self):
+        return self._dirty
+
+    @dirty.setter
+    def dirty(self, d):
+        self._dirty = d
+
     def __str__(self):
         return "<%s.%s zindex = %d focused = %r focusable = %r size = %r>" % \
                 (self.__class__.__name__, self.__class__.__module__,
@@ -166,6 +175,7 @@ class ContainerView(View):
     def __init__(self, canvas = None):
         super(ContainerView, self).__init__()
         self.children = []
+        self._shouldclear = True
 
     def onfocus(self):
         super(ContainerView, self).onfocus()
@@ -247,6 +257,7 @@ class ContainerView(View):
     def add_child(self, c):
         c.parent = self
         self.children.append(c)
+        self.dirty = True
 
     def remove_child(self, c):
         f = c.focused
@@ -255,14 +266,23 @@ class ContainerView(View):
         self.children.remove(c)
         if f:
             self.onfocus()
+        self.dirty = True
 
     def recalc(self):
         """Called on canvas change an addition/removal of a child"""
-        self.children.sort(key = lambda x: x.zindex)
-        for c in self.children:
-            c.canvas = self.canvas
+        if self.dirty:
+            self.children.sort(key = lambda x: x.zindex)
+            for c in self.children:
+                c.canvas = self.canvas
+            self._shouldclear = True
+            self.dirty = False
 
     def render(self):
+        if not self.canvas:
+            return
+        if self._shouldclear:
+            self._shouldclear = False
+            self.canvas.clear(blank = True)
         for c in self.children:
             if c.display:
                 c.render()
@@ -285,6 +305,16 @@ class ContainerView(View):
     @property
     def vstretch(self):
         return any(c.vstretch for c in self.children)
+
+    @property
+    def dirty(self):
+        return self._dirty or any(c.dirty for c in self.children)
+
+    @dirty.setter
+    def dirty(self, d):
+        self._dirty = d
+        for c in self.children:
+            c.dirty = d
 
 
 class Align(ContainerView):
