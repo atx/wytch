@@ -52,6 +52,7 @@ class FlushThread(threading.Thread):
         while self.shouldrun:
             try:
                 self.lock.acquire()
+                self.root.precalc()
                 self.root.recalc()
                 self.root.render()
                 self.buffer.flush()

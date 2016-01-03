@@ -121,6 +121,12 @@ class View:
         self._canvas = c
         self.recalc()
 
+    def precalc(self):
+        """Called before new canvas gets assigned, mostly used by children
+        to update their size.
+        """
+        pass
+
     def recalc(self):
         """Called on canvas change"""
         pass
@@ -267,6 +273,11 @@ class ContainerView(View):
         if f:
             self.onfocus()
         self.dirty = True
+
+    def precalc(self):
+        if self.dirty:
+            for c in self.children:
+                c.precalc()
 
     def recalc(self):
         """Called on canvas change an addition/removal of a child"""
