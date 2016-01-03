@@ -20,50 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import asyncio
+import concurrent
 import tty
-import termios
 import sys
-import io
-import threading
 import time
-import traceback
-import select
 import signal
 from functools import wraps
 from wytch import view, canvas, input, builder
 
 class WytchExitError(RuntimeError):
     pass
-
-class FlushThread(threading.Thread):
-
-    def __init__(self, fps, buffer, root):
-        super(FlushThread, self).__init__()
-        self.fps = fps
-        self.buffer = buffer
-        self.root = root
-        self.shouldrun = True
-        self.daemon = True
-        self.trace = None
-        self.lock = threading.Lock()
-
-    def run(self):
-        nxt = 0
-        while self.shouldrun:
-            try:
-                self.lock.acquire()
-                self.root.precalc()
-                self.root.recalc()
-                self.root.render()
-                self.buffer.flush()
-                self.lock.release()
-                now = time.time()
-                if now < nxt:
-                    time.sleep(nxt - now)
-                nxt = time.time() + 1 / self.fps
-            except:
-                self.trace = traceback.format_exc()
-                break
 
 class Wytch:
 
@@ -72,7 +39,9 @@ class Wytch:
         self.debug_redraw = debug_redraw
         self.ctrlc = ctrlc
         self.fps = fps
-        self.flushthread = None
+        self.event_loop = asyncio.get_event_loop()
+        self._sigwinch = False
+        self._intransport = None
 
     def __enter__(self):
         self.consolecanvas = canvas.ConsoleCanvas()
@@ -102,88 +71,112 @@ class Wytch:
             self.origprint = print
             __builtins__["print"] = _print
 
-        self.flushthread = FlushThread(self.fps, self.rootcanvas, self.realroot)
         return self
 
     def _cleanup(self):
         if self.debug:
             __builtins__["print"] = self.origprint
-        if self.flushthread.is_alive():
-            self.flushthread.shouldrun = False
-            self.flushthread.join()
         self.consolecanvas.destroy()
         print() # Newline
-        if self.flushthread.trace:
-            print(self.flushthread.trace)
 
     def exit(self):
         raise WytchExitError
 
-    def input_loop(self):
-        try:
-            if self.root.focusable:
-                self.root.focused = True
-            def sigwinch_handler(sn, fr):
-                self.flushthread.lock.acquire()
-                self.consolecanvas.update_size()
-                self.rootcanvas.update_size()
-                self.flushthread.lock.release()
-            signal.signal(signal.SIGWINCH, sigwinch_handler)
-            self.flushthread.start()
+    @asyncio.coroutine
+    def _input_loop(self):
+        reader = asyncio.StreamReader()
+        self._intransport, _ = yield from self.event_loop.connect_read_pipe(
+                                            lambda: asyncio.StreamReaderProtocol(reader),
+                                            sys.stdin)
+        while True:
+            b = yield from reader.readexactly(1)
+            mouse = False
+            if self.ctrlc and b == b"\x03":
+                raise KeyboardInterrupt
+            elif b == b"\x1b":
+                # TODO: Do some testing on a bunch of different terminals
+                b += yield from reader.readexactly(1)
+                if chr(b[-1]) in {"[", "O"}:
+                    b += yield from reader.readexactly(1)
+                    if chr(b[-1]) == "M":
+                        b += yield from reader.readexactly(3)
+                        mouse = True
+                    else:
+                        while b[-1] in range(ord("0"), ord("9") + 1):
+                            b += yield from reader.readexactly(1)
+                        if chr(b[-1]) == ";":
+                            b += yield from reader.readexactly(1)
+                            while b[-1] in range(ord("0"), ord("9") + 1):
+                                b += yield from reader.readexactly(1)
+                else: # TODO: Figure out if this eves happens
+                    pass
+            else:
+                # Decode unicode
+                c = 0
+                k = b[0]
+                while k & 0x80:
+                    k <<= 1
+                    c += 1
+                b += yield from reader.readexactly(c)
+            if mouse:
+                me = input.MouseEvent(b)
+                self.root.onmouse(me)
+            else:
+                kc = input.KeyEvent(b.decode("utf-8"))
+                self.root.onevent(kc)
+
+    @asyncio.coroutine
+    def _render_loop(self):
+        nxt = 0
+        with concurrent.futures.ThreadPoolExecutor(max_workers = 1) as e:
+            fut = None
             while True:
-                mouse = False
-                try:
-                    try:
-                        r = select.select([sys.stdin], [], [], 0.1)[0]
-                    except InterruptedError:
-                        # Gets thrown on SIGWINCH
-                        continue
-                    if not self.flushthread.is_alive():
-                        # The flush thread died :(
-                        break
-                    if not sys.stdin in r:
-                        continue
-                    c = sys.stdin.read(1)
-                except UnicodeDecodeError as ude: # UGLY EVIL EVIL!
-                    # Mouse click escape sequences can contain invalid Unicode
-                    mc = ude.object
-                    mouse = True
-                if not mouse:
-                    if self.ctrlc and ord(c[0]) == 3:
-                        raise KeyboardInterrupt
-                    elif c == "\x1b": # TODO: handle ESC key press
-                        # TODO: Figure out how much is this broken on terminals other than xfce4-terminal...
-                        c += sys.stdin.read(1)
-                        if c[-1] in ["[", "O"]: # CSI and SS3
-                            c += sys.stdin.read(1)
-                            if c[-1] == "M":
-                                c += sys.stdin.read(3)
-                                # Encode to bytes as MouseEvent expects that
-                                mc = c.encode("utf-8")
-                                mouse = True
-                            else:
-                                while ord(c[-1]) in range(ord("0"), ord("9") + 1):
-                                    c += sys.stdin.read(1)
-                                if c[-1] == ";":
-                                    c += sys.stdin.read(1)
-                                    while c[-1] in range(ord("0"), ord("9") + 1):
-                                        c += sys.stdin.read(1)
-                if mouse:
-                    # And it's worse and worse...
-                    while mc:
-                        me = input.MouseEvent(mc[:6])
-                        self.root.onmouse(me)
-                        mc = mc[6:]
-                elif self.root.focused:
-                    kc = input.KeyEvent(c)
-                    self.root.onevent(kc)
-        except WytchExitError:
-            pass
-        finally:
+                if self._sigwinch:
+                    self.consolecanvas.update_size()
+                    self.rootcanvas.update_size()
+                    self.realroot.dirty = True
+                    self._sigwinch = False
+                self.realroot.precalc()
+                self.realroot.recalc()
+                if fut:
+                    # The actual console write does not have to be synchronous
+                    # but we do not want to modify the BufferCanvas while it is in progress
+                    yield from fut
+                self.realroot.render()
+                fut = self.event_loop.run_in_executor(e, self.rootcanvas.flush)
+                now = time.time()
+                if now < nxt:
+                    yield from asyncio.sleep(nxt - now)
+                nxt = time.time() + 1 / self.fps
+
+    def _sigwinch_handler(self, sig, stack):
+        self._sigwinch = True
+
+    @asyncio.coroutine
+    def _main(self):
+        if self.root.focusable:
+            self.root.focused = True
+        try:
+            cors = [self._input_loop(), self._render_loop()]
+            done, pending = yield from \
+                                asyncio.wait(cors, return_when = asyncio.FIRST_EXCEPTION)
+            while pending:
+                pending.pop().cancel()
+            done.pop().result()
+        except Exception as e:
             self._cleanup()
+            if self._intransport:
+                self._intransport.close()
+            self.event_loop.stop()
+            if not isinstance(e, WytchExitError):
+                raise e
+
+    def start_event_loop(self):
+        signal.signal(signal.SIGWINCH, self._sigwinch_handler)
+        self.event_loop.run_until_complete(self._main())
 
     def __exit__(self, extype, exval, trace):
         if extype is not None:
             self._cleanup()
             return False
-        self.input_loop()
+        self.start_event_loop()
