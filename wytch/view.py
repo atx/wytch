@@ -691,10 +691,10 @@ class Label(Widget):
 
     def __str__(self):
         return "<%s.%s zindex = %d focused = %r focusable = %r size = %r " \
-                "title = \"%s\" fg = %r bg = %r>" % \
+                "text = \"%s\" fg = %r bg = %r>" % \
                 (self.__class__.__module__, self.__class__.__name__,
                     self.zindex, self.focused, self.focusable, self.size,
-                    self.title, self.fg, self.bg)
+                    self.text, self.fg, self.bg)
 
 
 class Button(Widget):
