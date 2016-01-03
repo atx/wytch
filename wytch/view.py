@@ -23,7 +23,7 @@
 import collections
 import random
 import string
-from math import ceil
+from math import ceil, floor
 from wytch import colors, canvas, input
 
 HOR_LEFT = 1
@@ -501,6 +501,7 @@ class Grid(ContainerView):
         self.width = width
         self.height = height
         self.grid = [[None] * width for _ in range(height)]
+        self._size = (0, 0)
 
     def onfocus(self):
         if any([c.focused for c in self.children]):
@@ -519,84 +520,82 @@ class Grid(ContainerView):
         self.grid[y][x] = Grid.Cell(child, colspan, rowspan)
         self.add_child(child)
 
+    def precalc(self):
+        # Iterate over all colspans
+        self._cws = [0] * self.width # Column widths
+        for colspan in range(1, self.width + 1):
+            for i, col in enumerate(zip(*self.grid)):
+                for ch in col:
+                    if not ch or ch.colspan != colspan:
+                        continue
+                    tot = 0
+                    # Over all affected columns
+                    for oc in range(ch.colspan):
+                        tot += self._cws[i + oc]
+                    if tot < ch.child.size[0]: # else the child fits into the allocated space already
+                        over = ch.child.size[0] - tot
+                        spl = floor(over / ch.colspan)
+                        # Evenly grow all columns to contain this element
+                        for oc in range(ch.colspan):
+                            self._cws[i + oc] += spl
+                            over -= spl
+                        # Split the rest, prefer to grow rightmost
+                        for oc in range(ch.colspan - 1, 0, -1):
+                            if over <= 0:
+                                break
+                            self._cws[i + oc] += 1
+                            over -= 1
+        self._rhs = [0] * self.height
+        # Iterate over all possible rowspans
+        for rowspan in range(1, self.height + 1):
+            for i, row in enumerate(self.grid):
+                for ch in row:
+                    if not ch or ch.rowspan != rowspan:
+                        continue
+                    tot = 0
+                    # Over all affected columns
+                    for oc in range(ch.rowspan):
+                        tot += self._rhs[i + oc]
+                    if tot < ch.child.size[1]: # else the child fits into the allocated space already
+                        over = ch.child.size[1] - tot
+                        spl = floor(over / ch.rowspan)
+                        # Evenly grow all columns to contain this element
+                        for oc in range(ch.rowspan):
+                            self._rhs[i + oc] += spl
+                            over -= spl
+                        # Split the rest, prefer to grow rightmost
+                        for oc in range(ch.rowspan - 1, 0, -1):
+                            if over <= 0:
+                                break
+                            self._rhs[i + oc] += 1
+                            over -= 1
+        self._size = (sum(self._cws), sum(self._rhs))
+
     def recalc(self):
         if not self.canvas:
             return
-        # Row heights
-        rhs = []
-        self.rhs = rhs
-        over = [None] * len(self.grid)
-        for row in self.grid:
-            rhs.append(1)
-            for i, (c, o) in enumerate(zip(row, over)):
-                if o: # We have some overflow from rowspan > 1
-                    c = o[0] # Cell
-                    rh = o[1] # Remaining height
-                    rr = o[2] # Remaining rows
-                elif not c:
-                    continue
-                else:
-                    rh = c.child.size[1]
-                    if rh == 0:
-                        continue
-                    rr = c.rowspan
-                if rr == 1:
-                    th = rh
-                else:
-                    th = round(rr / rh)
-                    over[i] = (c, rh - round(rr / rh), rr - 1)
-                if th > rhs[-1]:
-                    rhs[-1] = th
-        # Column widths
-        cws = []
-        self.cws = cws
-        over = [None] * len(self.grid[0])
-        for col in zip(*self.grid):
-            cws.append(1)
-            for i, (c, o) in enumerate(zip(col, over)):
-                if o:
-                    c = o[0] # Cell
-                    rw = o[1] # Remaining width
-                    rc = o[2] # Remaining cols
-                elif not c:
-                    continue
-                else:
-                    rw = c.child.size[0]
-                    if rw == 0:
-                        continue
-                    rc = c.colspan
-                if rc == 1:
-                    tw = rw
-                else:
-                    tw = round(rc / rw)
-                    over[i] = (c, rh - tw, rr - 1)
-                if tw > cws[-1]:
-                    cws[-1] = tw
-        # Assign subcanvases
         aty = 0
+        # Assign subcanvases
         for ri, row in enumerate(self.grid):
             atx = 0
             for ci, c in enumerate(row):
                 if c:
                     w = 0
-                    for x in cws[ci:ci + c.colspan]:
+                    for x in self._cws[ci:ci + c.colspan]:
                         w += x
                     h = 0
-                    for x in rhs[ri:ri + c.rowspan]:
+                    for x in self._rhs[ri:ri + c.rowspan]:
                         h += x
+                    assert w >= c.child.size[0] and h >= c.child.size[1]
                     c.child.canvas = \
                             canvas.SubCanvas(self.canvas, atx, aty,
                                     w, h)
-                atx += cws[ci]
-            aty += rhs[ri]
+                atx += self._cws[ci]
+            aty += self._rhs[ri]
 
     @property
     def size(self):
-        w = sum(max(c.child.size[0] / c.colspan if c else 0 for c in col)
-                for col in zip(*self.grid))
-        h = sum(max(c.child.size[1] / c.rowspan if c else 0 for c in row)
-                for row in self.grid)
-        return (ceil(w), ceil(h))
+        return self._size
 
     def __str__(self):
         return "<%s.%s zindex = %d focused = %r focusable = %r size = %r " \
