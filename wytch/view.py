@@ -716,9 +716,7 @@ class Button(Widget):
             txt = "> " + self.label + " <"
         else:
             txt = "  " + self.label + "  "
-        offs = ceil(self.canvas.width / 2 - len(txt) / 2) - 1
-        if offs < 0:
-            offs = 0
+        offs = floor(self.canvas.width / 2 - len(txt) / 2)
         self.canvas.text(offs, 0, txt,
                 fg = colors.WHITE, bg = colors.BLACK,
                 flags = canvas.NEGATIVE if self.focused else 0)
