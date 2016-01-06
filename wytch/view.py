@@ -940,28 +940,34 @@ class Console(Widget):
         self.minheight = minheight
         self.history = history
         self._lines = collections.deque(maxlen = self.history)
+        self._splitlines = collections.deque(maxlen = self.minheight)
         self.focusable = False
 
     def push(self, line):
         self._lines.appendleft(line)
+        self._update_splitlines()
 
     def recalc(self):
         if not self.canvas:
             return
-        nls = collections.deque(maxlen = self.history)
-        for l in self._lines:
-            while self.canvas.width < len(l):
-                nls.append(l[:self.canvas.width])
-                l = l[self.canvas.width:]
-            nls.append(l)
-        self._lines = nls
+        self._update_splitlines()
+
+    def _update_splitlines(self):
+        if not self.canvas:
+            return
+        self._splitlines = []
+        for line in self._lines:
+            rem = len(line) % self.canvas.width
+            self._splitlines.append(line[-rem:])
+            for x in range(len(line) - rem, 0, -self.canvas.width):
+                self._splitlines.append(line[x - self.canvas.width:x])
+
 
     def render(self):
         if not self.canvas:
             return
-        for i in range(min(self.canvas.height, len(self._lines))):
-            self.canvas.text(0, self.canvas.height - i - 1, self._lines[i] + \
-                    " " * (self.canvas.width - len(self._lines[i])))
+        for y, l in zip(range(self.canvas.height - 1, -1, -1), self._splitlines):
+            self.canvas.text(0, y, l + " " * (self.canvas.width - len(l)))
 
     @property
     def size(self):
