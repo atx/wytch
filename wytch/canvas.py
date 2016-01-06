@@ -203,7 +203,7 @@ class ConsoleCanvas(Canvas):
     def update_size(self):
         self.width, self.height = shutil.get_terminal_size((80, 20))
         self._set_cursor(0, 0)
-        self.clear()
+        self.clear(blank = True)
 
     def clear(self, blank = False):
         if not blank:
@@ -263,7 +263,7 @@ class BufferCanvas(Canvas):
     def update_size(self):
         self.width = self.parent.width
         self.height = self.parent.height
-        self.clear()
+        self.clear(blank = True)
 
     def clear(self, blank = False):
         self._grid = [[None] * self.width for _ in range(self.height)]
