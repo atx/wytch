@@ -37,6 +37,7 @@ VER_BOT = 3
 class View:
 
     def __init__(self):
+        self.onupdate = None
         self.zindex = 0
         self._focused = False
         self._canvas = None
@@ -121,6 +122,11 @@ class View:
         self._canvas = c
         self.recalc()
 
+    def update(self):
+        """Wakes the render thread to perform at least one render cycle"""
+        if self.root.onupdate:
+            self.root.onupdate()
+
     def precalc(self):
         """Called before new canvas gets assigned, mostly used by children
         to update their size.
@@ -169,6 +175,8 @@ class View:
     @dirty.setter
     def dirty(self, d):
         self._dirty = d
+        if d:
+            self.update()
 
     def __str__(self):
         return "<%s.%s zindex = %d focused = %r focusable = %r size = %r>" % \
@@ -658,9 +666,11 @@ class Widget(View):
 
     def onfocus(self):
         super(Widget, self).onfocus()
+        self.update()
 
     def onunfocus(self):
         super(Widget, self).onunfocus()
+        self.update()
 
 
 class ValueWidget(Widget):
@@ -678,6 +688,7 @@ class ValueWidget(Widget):
     def value(self, v):
         self._value = v
         self.onchange(self, self._value)
+        self.update()
 
 
 class Label(Widget):
@@ -833,6 +844,7 @@ class TextInput(ValueWidget):
     @cursor.setter
     def cursor(self, c):
         self._cursor = c
+        self.update()
 
     @property
     def offset(self):
@@ -841,6 +853,7 @@ class TextInput(ValueWidget):
     @offset.setter
     def offset(self, o):
         self._offset = o if o >= 0 else 0
+        self.update()
 
     @property
     def size(self):
@@ -926,6 +939,7 @@ class Decade(ValueWidget):
     @cursor.setter
     def cursor(self, c):
         self._cursor = c
+        self.update()
 
     @property
     def size(self):
@@ -946,6 +960,7 @@ class Console(Widget):
     def push(self, line):
         self._lines.appendleft(line)
         self._update_splitlines()
+        self.update()
 
     def recalc(self):
         if not self.canvas:

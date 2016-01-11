@@ -34,20 +34,22 @@ class WytchExitError(RuntimeError):
 
 class Wytch:
 
-    def __init__(self, debug = False, debug_redraw = False, ctrlc = True, fps = 20):
+    def __init__(self, debug = False, debug_redraw = False, ctrlc = True, maxfps = 20):
         self.debug = debug
         self.debug_redraw = debug_redraw
         self.ctrlc = ctrlc
-        self.fps = fps
+        self.maxfps = maxfps
         self.event_loop = asyncio.get_event_loop()
         self._sigwinch = False
         self._intransport = None
+        self._redraw_sem = asyncio.BoundedSemaphore(value = 1)
 
     def __enter__(self):
         self.consolecanvas = canvas.ConsoleCanvas()
         self.rootcanvas = canvas.BufferCanvas(self.consolecanvas,
                                          debug = self.debug_redraw)
         self.realroot = view.ContainerView()
+        self.realroot.onupdate = self.request_redraw
         self.root = self.realroot
         self.realroot.canvas = self.rootcanvas
         if self.debug:
@@ -81,6 +83,10 @@ class Wytch:
 
     def exit(self):
         raise WytchExitError
+
+    def request_redraw(self):
+        if self._redraw_sem.locked():
+            self._redraw_sem.release()
 
     @asyncio.coroutine
     def _input_loop(self):
@@ -127,30 +133,29 @@ class Wytch:
 
     @asyncio.coroutine
     def _render_loop(self):
+        first = False
         nxt = 0
         with concurrent.futures.ThreadPoolExecutor(max_workers = 1) as e:
-            fut = None
             while True:
+                if first:
+                    first = False
+                else:
+                    yield from asyncio.sleep(nxt - time.time())
+                    yield from self._redraw_sem.acquire()
                 if self._sigwinch:
                     self.consolecanvas.update_size()
                     self.rootcanvas.update_size()
                     self.realroot.dirty = True
                     self._sigwinch = False
+                nxt = time.time() + 1 / self.maxfps
                 self.realroot.precalc()
                 self.realroot.recalc()
-                if fut:
-                    # The actual console write does not have to be synchronous
-                    # but we do not want to modify the BufferCanvas while it is in progress
-                    yield from fut
                 self.realroot.render()
-                fut = self.event_loop.run_in_executor(e, self.rootcanvas.flush)
-                now = time.time()
-                if now < nxt:
-                    yield from asyncio.sleep(nxt - now)
-                nxt = time.time() + 1 / self.fps
+                yield from self.event_loop.run_in_executor(e, self.rootcanvas.flush)
 
     def _sigwinch_handler(self, sig, stack):
         self._sigwinch = True
+        self.request_redraw()
 
     @asyncio.coroutine
     def _main(self):
