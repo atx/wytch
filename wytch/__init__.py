@@ -51,7 +51,7 @@ class Wytch:
         self.realroot = view.ContainerView()
         self.realroot.onupdate = self.request_redraw
         self.root = self.realroot
-        self.realroot.canvas = self.rootcanvas
+        self._sigwinch = True
         if self.debug:
             console = view.Console(minheight = 10)
             self.root = view.ContainerView()
@@ -142,14 +142,21 @@ class Wytch:
                 else:
                     yield from asyncio.sleep(nxt - time.time())
                     yield from self._redraw_sem.acquire()
+                nxt = time.time() + 1 / self.maxfps
+                self.realroot.precalc()
                 if self._sigwinch:
                     self.consolecanvas.update_size()
                     self.rootcanvas.update_size()
                     self.realroot.dirty = True
+                    self.realroot.canvas = \
+                            canvas.SubCanvas(self.rootcanvas, 0, 0,
+                                             max(self.rootcanvas.width,
+                                                 self.realroot.size[0]),
+                                             max(self.rootcanvas.height,
+                                                 self.realroot.size[1]))
                     self._sigwinch = False
-                nxt = time.time() + 1 / self.maxfps
-                self.realroot.precalc()
-                self.realroot.recalc()
+                else:
+                    self.realroot.recalc()
                 self.realroot.render()
                 yield from self.event_loop.run_in_executor(e, self.rootcanvas.flush)
 
