@@ -20,9 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from wytch import builder, colors, view, input, Wytch
+from wytch import builder, colors, view, canvas, Wytch
 
-w = Wytch(buffer = True)
+w = Wytch()
 
 class ColorButton(view.Widget):
 
@@ -41,9 +41,8 @@ class ColorButton(view.Widget):
             bordercolor = self.color)
 
     def onmouse(self, me):
-        if not me.pressed:
-            return
-        self.board.colors[me.button] = self.color
+        if me.pressed:
+            self.board.colors[me.button] = self.color
 
     @property
     def size(self):
@@ -57,40 +56,43 @@ class DrawingBoard(view.Widget):
         self.oldme = None
         self.colors = {}
         self.handlers.append(("c", self._onclear))
+        self._buffer = None
 
     def _onclear(self, kc):
-        self.canvas.clear()
+        self._buffer.clear()
+        self.update()
 
     def recalc(self):
         if not self.canvas:
             return
-        if not self.grid or len(self.grid) != self.canvas.width \
-                or len(self.grid[0]) != self.canvas.height:
-            self.grid = [[False] * self.canvas.height for _ in range(self.canvas.width)]
+        if not self._buffer or self._buffer.width != self.canvas.width \
+                or self._buffer.height != self.canvas.height:
+            self._buffer = canvas.BufferCanvas(self.canvas)
 
     def onmouse(self, me):
         if me.released:
-            key = self.oldme.button
+            if self.oldme:
+                key = self.oldme.button
+            else:
+                return
         else:
             key = me.button
         color = self.colors.get(key, colors.DARKGREEN)
         if not self.oldme:
-            self.canvas.set(me.x, me.y, " ", bg = color)
+            self._buffer.set(me.x, me.y, " ", bg = color)
         else:
-            self.canvas.line(self.oldme.x, self.oldme.y, me.x, me.y, bg = color)
+            self._buffer.line(self.oldme.x, self.oldme.y, me.x, me.y, bg = color)
 
         if me.released:
             self.oldme = None
         else:
             self.oldme = me
-
+        self.update()
 
     def render(self):
         if not self.canvas:
             return
-        for x, col in enumerate(self.grid):
-            for y, v in enumerate(col):
-                self.canvas.set(x, y, " ")
+        self._buffer.flush()
 
     @property
     def size(self):
