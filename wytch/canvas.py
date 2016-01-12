@@ -182,8 +182,6 @@ class ConsoleCanvas(Canvas):
         if self._flags == flags:
             return
         self._send_sgr(0) # Reset all parameters
-        self._fg_color = CLEAR_FG
-        self._bg_color = CLEAR_BG
         self._flags = flags
         if flags & BOLD:
             self._send_sgr(SGR_CODES[BOLD])
@@ -208,6 +206,8 @@ class ConsoleCanvas(Canvas):
     def clear(self, blank = False):
         if not blank:
             return super(ConsoleCanvas, self).clear(blank = blank)
+        self._set_fg_color(colors.WHITE)
+        self._set_bg_color(colors.BLACK)
         self._set_flags(0)
         self._send_ansi("J", 2)
 
@@ -225,8 +225,8 @@ class ConsoleCanvas(Canvas):
 
     def destroy(self):
         self._set_flags(0)
-        self._set_fg_color(colors.WHITE)
-        self._set_bg_color(colors.BLACK)
+        self._set_fg_color(CLEAR_FG)
+        self._set_bg_color(CLEAR_BG)
         self.clear(blank = True)
         self._set_cursor(0, 0)
         self._send_ansi("h", "?25") # Show cursor
