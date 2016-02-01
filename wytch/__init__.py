@@ -30,7 +30,10 @@ from functools import wraps
 from wytch import view, canvas, input, builder
 
 class WytchExitError(RuntimeError):
-    pass
+
+    def __init__(self, wraps = None):
+        super(WytchExitError, self).__init__()
+        self.wraps = wraps
 
 class Wytch:
 
@@ -98,7 +101,8 @@ class Wytch:
             b = yield from reader.readexactly(1)
             mouse = False
             if self.ctrlc and b == b"\x03":
-                raise KeyboardInterrupt
+                # Wrap KeyboardInterrupt as asyncio is unable to handle it gracefully
+                raise WytchExitError(wraps = KeyboardInterrupt())
             elif b == b"\x1b":
                 # TODO: Do some testing on a bunch of different terminals
                 b += yield from reader.readexactly(1)
@@ -180,12 +184,15 @@ class Wytch:
             if self._intransport:
                 self._intransport.close()
             self.event_loop.stop()
-            if not isinstance(e, WytchExitError):
-                raise e
+            raise e
 
     def start_event_loop(self):
         signal.signal(signal.SIGWINCH, self._sigwinch_handler)
-        self.event_loop.run_until_complete(self._main())
+        try:
+            self.event_loop.run_until_complete(self._main())
+        except WytchExitError as e:
+            if e.wraps:
+                raise e.wraps
 
     def __exit__(self, extype, exval, trace):
         if extype is not None:
