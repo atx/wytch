@@ -35,8 +35,6 @@ class ColorButton(view.Widget):
         self.vstretch = False
 
     def render(self):
-        if not self.canvas:
-            return
         self.canvas.square(0, 0, self.canvas.width, self.canvas.height,
             bordercolor = self.color)
 
@@ -63,8 +61,6 @@ class DrawingBoard(view.Widget):
         self.update()
 
     def recalc(self):
-        if not self.canvas:
-            return
         if not self._buffer or self._buffer.width != self.canvas.width \
                 or self._buffer.height != self.canvas.height:
             self._buffer = canvas.BufferCanvas(self.canvas)
@@ -90,8 +86,6 @@ class DrawingBoard(view.Widget):
         self.update()
 
     def render(self):
-        if not self.canvas:
-            return
         self._buffer.flush()
 
     @property

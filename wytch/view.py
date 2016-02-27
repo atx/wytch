@@ -297,8 +297,6 @@ class ContainerView(View):
             self.dirty = False
 
     def render(self):
-        if not self.canvas:
-            return
         if self._shouldclear:
             self._shouldclear = False
             self.canvas.clear(blank = True)
@@ -344,8 +342,6 @@ class Align(ContainerView):
         self.valign = valign
 
     def recalc(self):
-        if not self.canvas:
-            return
         if self.halign == HOR_LEFT:
             x = 0
         elif self.halign == HOR_MID:
@@ -390,16 +386,12 @@ class Box(ContainerView):
         self.bg = bg
 
     def recalc(self):
-        if not self.canvas:
-            return
         subc = canvas.SubCanvas(self.canvas, 2, 1,
                 self.canvas.width - 4, self.canvas.height - 2)
         for c in self.children:
             c.canvas = subc
 
     def render(self):
-        if not self.canvas:
-            return
         self.canvas.clear()
         super(Box, self).render()
         self.canvas.box(0, 0, self.canvas.width - 1, self.canvas.height - 1,
@@ -432,8 +424,6 @@ class Vertical(ContainerView):
         self._height = 0
 
     def recalc(self):
-        if not self.canvas:
-            return
         anyc = sum(c.vstretch for c in self.children)
         remh = self.canvas.height - sum(c.size[1] for c in self.children)
         perc = round(remh / anyc) if anyc else 0
@@ -467,8 +457,6 @@ class Horizontal(ContainerView):
         self._height = height
 
     def recalc(self):
-        if not self.canvas:
-            return
         anyc = sum(c.hstretch for c in self.children)
         remw = self.canvas.width - sum(c.size[0] for c in self.children)
         perc = round(remw / anyc) if anyc else 0
@@ -580,8 +568,6 @@ class Grid(ContainerView):
         self._size = (sum(self._cws), sum(self._rhs))
 
     def recalc(self):
-        if not self.canvas:
-            return
         aty = 0
         # Assign subcanvases
         for ri, row in enumerate(self.grid):
@@ -622,8 +608,6 @@ class HLine(View):
         self.vstretch = False
 
     def render(self):
-        if not self.canvas:
-            return
         self.canvas.hline(0, 0, self.canvas.width)
         if self.title:
             self.canvas.text(0, 0, self.title + " ")
@@ -702,8 +686,6 @@ class Label(Widget):
         self.vstretch = False
 
     def render(self):
-        if not self.canvas:
-            return
         self.canvas.text(0, 0, self.text, fg = self.fg, bg = self.bg)
 
     @property
@@ -731,8 +713,6 @@ class Button(Widget):
         self.onpress(self)
 
     def render(self):
-        if not self.canvas:
-            return
         if self.focused:
             txt = "> " + self.label + " <"
         else:
@@ -816,8 +796,6 @@ class TextInput(ValueWidget):
         return False
 
     def render(self):
-        if not self.canvas:
-            return
         self.canvas.clear()
         flg = canvas.UNDERLINE | (canvas.BOLD if self.focused else canvas.FAINT)
         for i in range(
@@ -912,8 +890,6 @@ class Decade(ValueWidget):
             self.value = self.min
 
     def render(self):
-        if not self.canvas:
-            return
         self.canvas.clear()
         ox = int(self.canvas.width / 2 - self.size[0] / 2)
         sflags = canvas.BOLD if self.focused else 0
@@ -963,13 +939,9 @@ class Console(Widget):
         self.update()
 
     def recalc(self):
-        if not self.canvas:
-            return
         self._update_splitlines()
 
     def _update_splitlines(self):
-        if not self.canvas:
-            return
         self._splitlines = []
         for line in self._lines:
             rem = len(line) % self.canvas.width
@@ -979,8 +951,6 @@ class Console(Widget):
 
 
     def render(self):
-        if not self.canvas:
-            return
         for y, l in zip(range(self.canvas.height - 1, -1, -1), self._splitlines):
             self.canvas.text(0, y, l + " " * (self.canvas.width - len(l)))
 
@@ -1004,8 +974,6 @@ class Checkbox(ValueWidget):
         self.value = not self.value
 
     def render(self):
-        if not self.canvas:
-            return
         s = "[✓]" if self.value else "[ ]"
         if self.label:
             s += " " + self.label + " "
@@ -1061,8 +1029,6 @@ class Radio(ValueWidget):
         self._toggle(None)
 
     def render(self):
-        if not self.canvas:
-            return
         s = self._tick()
         if self.label:
             s += " " + self.label
