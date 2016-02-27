@@ -31,7 +31,8 @@ def _fullname(o):
         return o.__module__ + "." + o.__qualname__
     return o.__qualname__
 
-def handler(evname):
+
+def handler(evname, **kwargs):
     """
     Mark a method as a handler for an Event of the specified name.
 
@@ -51,9 +52,11 @@ def handler(evname):
         nm = _fullname(fn)
         if nm not in _unbound_handlers:
             _unbound_handlers[nm] = []
-        _unbound_handlers[nm].append(evname)
+        _unbound_handlers[nm].append((evname, kwargs))
         return fn
     return decor
+
+
 
 class EventSource:
 
@@ -61,20 +64,27 @@ class EventSource:
     Base class for all classes that want to fire events.
     """
 
+    class Handler:
+
+        def __init__(self, evname, fn, mkws = {}):
+            self.evname = evname
+            self.fn = fn
+            self.mkws = mkws
+
     def __init__(self):
         self._bind_handlers()
         self._handlers = {}
         self._inherit_handlers()
 
     @classmethod
-    def _class_bind(cls, evname, fn):
+    def _class_bind(cls, evname, fn, **kwargs):
         """
         Bind a method of this class (or a parent) to an event. These methods
         will get translated to bound methods on instantiation.
         """
         if evname not in cls._class_handlers:
             cls._class_handlers[evname] = []
-        cls._class_handlers[evname].append(fn)
+        cls._class_handlers[evname].append(EventSource.Handler(evname, fn, kwargs))
 
     @classmethod
     def _bind_handlers(cls):
@@ -94,32 +104,39 @@ class EventSource:
                 continue
             nm = _fullname(x)
             if nm in _unbound_handlers:
-                for evname in _unbound_handlers[nm]:
-                    cls._class_bind(evname, x)
+                for evname, mkws in _unbound_handlers[nm]:
+                    cls._class_bind(evname, x, **mkws)
 
     def _inherit_handlers(self):
         """ .bind class handlers from all parent classes. """
         for parent in [p for p in inspect.getmro(self.__class__) \
                         if hasattr(p, "_class_handlers")]:
-            for ev, fns in parent._class_handlers.items():
-                for fn in fns:
+            for ev, hdls in parent._class_handlers.items():
+                for h in hdls:
                     # Find the appropriate bound method of self
                     for metname in self.__dir__():
                         # Notice that we cannot just getattr on self as that could
                         # attempt to dereference properties depending on uninitialized variables
                         clfn = getattr(self.__class__, metname, None)
-                        if clfn and clfn == fn:
-                            self.bind(ev, getattr(self, metname))
+                        if clfn and clfn == h.fn:
+                            self.bind(ev, getattr(self, metname), **h.mkws)
 
-    def bind(self, evname, fn):
-        """ Bind an handler for an event with the provided name. """
+    def bind(self, evname, fn, **kwargs):
+        """
+        Bind an handler for an event with the provided name.
+
+        Returns a reference to an instance of EventSource.Handler which can be then passed
+        to .unbind
+        """
         if evname not in self._handlers:
             self._handlers[evname] = []
-        self._handlers[evname].append(fn)
+        h = EventSource.Handler(evname, fn, kwargs)
+        self._handlers[evname].append(h)
+        return h
 
-    def unbind(self, evname, fn):
-        """ Unbind a handler from event with the provided name. """
-        self._handlers[evname].remove(fn)
+    def unbind(self, handler):
+        """ Unbind a handler registered with the .bind method. """
+        self._handlers[handler.evname].remove(handler)
 
     def fire(self, event):
         """
@@ -127,9 +144,12 @@ class EventSource:
         handler was found and executed.
         """
         if self._handlers.get(event.name, []):
-            for fn in self._handlers[event.name]:
-                fn(event)
-            return True
+            ret = False
+            for h in self._handlers[event.name]:
+                if event.matches(**h.mkws):
+                    h.fn(event)
+                    ret = True
+            return ret
         return False
 
 
@@ -142,6 +162,13 @@ class Event:
     def __init__(self, name, source = None):
         self.name = name
         self.source = source
+
+    def matches(self):
+        """
+        Method to be implemented by a subclass that wants to provide more
+        specific matching than by name.
+        """
+        return True
 
 
 class KeyEvent(Event):
@@ -223,6 +250,10 @@ class KeyEvent(Event):
         if self.ctrl:
             self.val = "^" + self.val
 
+    def matches(self, key = None, keys = None):
+        return (keys is None and keys is None) or \
+               (key and self.val == key) or (self.val in keys)
+
     def __str__(self):
         return "<input.KeyEvent shift = %r alt = %r ctrl = %r val = %r>" % \
                 (self.shift, self.alt, self.ctrl, self.val)
@@ -260,6 +291,10 @@ class MouseEvent(Event):
         ret.x = self.x - x
         ret.y = self.y - y
         return ret
+
+    def matches(self, button = None):
+        return self.button is None or \
+               (self.button == button)
 
     def __str__(self):
         return "<input.MouseEvent x = %d y = %d button = %d pressed = %r drag = %r released = %r>" % \
