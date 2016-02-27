@@ -1,6 +1,9 @@
 #! /usr/bin/env python3
 
-from distutils.core import setup
+try:
+    from setuptools import setup
+except:
+    from distutils.core import setup
 
 setup(
     name = "wytch",
@@ -11,6 +14,8 @@ setup(
     author_email = "atx@atx.name",
     url = "https://github.com/atalax/wytch",
     license = "MIT",
+    setup_requires = ["pytest-runner"],
+    tests_require = ["pytest"],
     classifiers = [
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
