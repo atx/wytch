@@ -42,6 +42,10 @@ def handler(evname, **kwargs):
           @handler("key")
           def onkey(self, event):
               pass
+
+          @handler("key", invert = True, key = "\r"):
+          def onkey(self, event):
+              pass
     """
     def decor(fn):
         # As there is no way to get the class object at this point, put the
@@ -146,7 +150,18 @@ class EventSource:
         if self._handlers.get(event.name, []):
             ret = False
             for h in self._handlers[event.name]:
-                if event.matches(**h.mkws):
+                kws = h.mkws.copy()
+                if "matcher" in kws:
+                    kws.pop("matcher")
+                    matcher = lambda **kwargs: h.mkws["matcher"](event, **kwargs)
+                else:
+                    matcher = event.matches
+                if "invert" in kws:
+                    flip = kws["invert"]
+                    kws.pop("invert")
+                else:
+                    flip = False
+                if flip ^ matcher(**kws):
                     h.fn(event)
                     ret = True
             return ret
