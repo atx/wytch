@@ -24,7 +24,7 @@ import collections
 import random
 import string
 from math import ceil, floor
-from wytch import colors, canvas, input
+from wytch import colors, canvas, event
 
 HOR_LEFT = 1
 HOR_MID = 2
@@ -639,7 +639,7 @@ class Spacer(View):
 class Widget(View):
 
     def onmouse(self, me):
-        if me.pressed and me.button == input.MouseEvent.LEFT and self.focusable:
+        if me.pressed and me.button == event.MouseEvent.LEFT and self.focusable:
             if self.focusable and not self.focused:
                 self.focused = True
             else:

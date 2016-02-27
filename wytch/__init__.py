@@ -27,7 +27,7 @@ import sys
 import time
 import signal
 from functools import wraps
-from wytch import view, canvas, input, builder
+from wytch import view, canvas, event, builder
 
 class WytchExitError(RuntimeError):
 
@@ -129,10 +129,10 @@ class Wytch:
                     c += 1
                 b += yield from reader.readexactly(c)
             if mouse:
-                me = input.MouseEvent(b)
+                me = event.MouseEvent(b)
                 self.root.onmouse(me)
             else:
-                kc = input.KeyEvent(b.decode("utf-8"))
+                kc = event.KeyEvent(b.decode("utf-8"))
                 self.root.onevent(kc)
 
     @asyncio.coroutine
