@@ -271,8 +271,8 @@ class KeyEvent(Event):
             self.val = "^" + self.val
 
     def matches(self, key = None, keys = None):
-        return (keys is None and keys is None) or \
-               (key and self.val == key) or (self.val in keys)
+        return (key is None or self.val == key) and \
+               (keys is None or self.val in keys)
 
     def __str__(self):
         return "<input.KeyEvent shift = %r alt = %r ctrl = %r val = %r>" % \
@@ -312,9 +312,11 @@ class MouseEvent(Event):
         ret.y = self.y - y
         return ret
 
-    def matches(self, button = None):
-        return self.button is None or \
-               (self.button == button)
+    def matches(self, pressed = None, released = None, drag = None, button = None):
+        return (button is None or button == self.button) and \
+               (pressed is None or pressed == self.pressed) and \
+               (released is None or released == self.released) and \
+               (drag is None or drag == self.drag)
 
     def __str__(self):
         return "<input.MouseEvent x = %d y = %d button = %d pressed = %r drag = %r released = %r>" % \
