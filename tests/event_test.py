@@ -146,6 +146,22 @@ class EventSourceTestCase(unittest.TestCase):
             EventSourceTestCase.TestEvent("ub", "jp")
         )
 
+    def test_handler_reject(self):
+        self.flag = False
+        def hdl(event):
+            print("Setting")
+            self.flag = True
+            return event.value != "123"
+        self.handler = hdl
+        self.es.bind("rej", self.handler, canreject = True)
+        event = EventSourceTestCase.TestEvent("rej", "123")
+        self.assertFalse(self.es.fire(event))
+        self.assertTrue(self.flag)
+        self.flag = False
+        event = EventSourceTestCase.TestEvent("rej", "ooo")
+        self.assertTrue(self.es.fire(event))
+        self.assertTrue(self.flag)
+
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(TestEventSource())

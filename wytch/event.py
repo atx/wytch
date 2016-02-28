@@ -151,19 +151,24 @@ class EventSource:
             ret = False
             for h in self._handlers[event.name]:
                 kws = h.mkws.copy()
+                matcher = event.matches
+                flip = False
+                canreject = False
                 if "matcher" in kws:
                     kws.pop("matcher")
                     matcher = lambda **kwargs: h.mkws["matcher"](event, **kwargs)
-                else:
-                    matcher = event.matches
                 if "invert" in kws:
                     flip = kws["invert"]
                     kws.pop("invert")
-                else:
-                    flip = False
+                if "canreject" in kws:
+                    canreject = kws["canreject"]
+                    kws.pop("canreject")
                 if flip ^ matcher(**kws):
-                    h.fn(event)
-                    ret = True
+                    hrt = h.fn(event)
+                    if canreject:
+                        ret = hrt or ret
+                    else:
+                        ret = True
             return ret
         return False
 
