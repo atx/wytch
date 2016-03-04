@@ -130,10 +130,10 @@ class Wytch:
                 b += yield from reader.readexactly(c)
             if mouse:
                 me = event.MouseEvent(b)
-                self.root.onmouse(me)
+                self.root.fire(me)
             else:
                 kc = event.KeyEvent(b.decode("utf-8"))
-                self.root.onevent(kc)
+                self.root.focused_leaf.bubble(kc)
 
     @asyncio.coroutine
     def _render_loop(self):

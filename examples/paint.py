@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from wytch import builder, colors, view, canvas, Wytch
+from wytch import builder, colors, view, canvas, event, Wytch
 
 w = Wytch()
 
@@ -34,13 +34,13 @@ class ColorButton(view.Widget):
         self.hstretch = False
         self.vstretch = False
 
+    @event.handler("mouse", pressed = True)
+    def _onmouse(self, me):
+        self.board.colors[me.button] = self.color
+
     def render(self):
         self.canvas.square(0, 0, self.canvas.width, self.canvas.height,
                            self.color)
-
-    def onmouse(self, me):
-        if me.pressed:
-            self.board.colors[me.button] = self.color
 
     @property
     def size(self):
@@ -53,19 +53,15 @@ class DrawingBoard(view.Widget):
         self.grid = None
         self.oldme = None
         self.colors = {}
-        self.handlers.append(("c", self._onclear))
         self._buffer = None
 
+    @event.handler("key", key = "c")
     def _onclear(self, kc):
         self._buffer.clear()
         self.update()
 
-    def recalc(self):
-        if not self._buffer or self._buffer.width != self.canvas.width \
-                or self._buffer.height != self.canvas.height:
-            self._buffer = canvas.BufferCanvas(self.canvas)
-
-    def onmouse(self, me):
+    @event.handler("mouse")
+    def _onmouse(self, me):
         if me.released:
             if self.oldme:
                 key = self.oldme.button
@@ -85,6 +81,11 @@ class DrawingBoard(view.Widget):
             self.oldme = me
         self.update()
 
+    def recalc(self):
+        if not self._buffer or self._buffer.width != self.canvas.width \
+                or self._buffer.height != self.canvas.height:
+            self._buffer = canvas.BufferCanvas(self.canvas)
+
     def render(self):
         self._buffer.flush()
 
@@ -94,7 +95,7 @@ class DrawingBoard(view.Widget):
 
 with w:
     board = DrawingBoard()
-    w.root.handlers.append(("q", lambda _: w.exit()))
+    w.root.bind("key", lambda _: w.exit(), key = "q")
     with builder.Builder(w.root) as b:
         h = b.vertical() \
             .horizontal()

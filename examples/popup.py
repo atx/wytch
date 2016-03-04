@@ -27,9 +27,9 @@ w = Wytch()
 with w:
     popup = builder.Popup(w.root)
     label = view.Label("-", fg = colors.GREEN)
-    def ongroup(w):
-        label.text = w.label
-    group = view.Radio.Group(onchange = ongroup)
+    def ongroup(ve):
+        label.text = ve.new.label
+    group = view.Radio.Group(onvalue = ongroup)
     with popup:
         x = popup.align().box("Popup").vertical()
         for s in ["alpha", "beta", "gamma", "delta", "epsilon"]:

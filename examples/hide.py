@@ -28,11 +28,11 @@ with w:
     ttgt = view.TextInput()
     lbl = view.Label("Target", fg = colors.BLUE)
     with builder.Builder(w.root) as b:
-        def onchange(w, v):
+        def onvalue(_):
             ttgt.display = not ttgt.display
             lbl.display = not lbl.display
 
         b.align().box("Login").grid(3, 4) \
             (lbl).spacer(width = 2)(ttgt) \
-            (view.Checkbox("Hide", onchange = onchange), colspan = 3)()() \
+            (view.Checkbox("Hide", onvalue = onvalue), colspan = 3)()() \
             (view.Button("Quit", onpress = lambda _: w.exit()), colspan = 3)

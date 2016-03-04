@@ -321,3 +321,33 @@ class MouseEvent(Event):
     def __str__(self):
         return "<input.MouseEvent x = %d y = %d button = %d pressed = %r drag = %r released = %r>" % \
                 (self.x, self.y, self.button, self.pressed, self.drag, self.released)
+
+
+class ClickEvent(Event):
+
+    """ Event fired on itself by the Widget class when it decides it has been clicked on. """
+
+    def __init__(self, source = None):
+        super(ClickEvent, self).__init__("click", source = source)
+
+
+class ValueEvent(Event):
+
+    """ Event fired by ValueWidget when its value changes. """
+
+    def __init__(self, new, old = None, source = None):
+        super(ValueEvent, self).__init__("value", source = source)
+        self.new = new
+        self.old = old
+
+    def matches(self, new = None, old = None):
+        return (new is None or new == self.new) and \
+               (old is None or old == self.old)
+
+
+class PressEvent(Event):
+
+    """ Event fired on itself by button when pressed. """
+
+    def __init__(self, source = None):
+        super(PressEvent, self).__init__("press", source = source)

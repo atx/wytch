@@ -34,43 +34,30 @@ VER_TOP = 1
 VER_MID = 2
 VER_BOT = 3
 
-class View:
+class View(event.EventSource):
 
     def __init__(self):
+        super(View, self).__init__()
         self.onupdate = None
         self.zindex = 0
         self._focused = False
         self._canvas = None
         self.parent = None
         self._focusable = True
-        self.handlers = []
         self._vstretch = True
         self._hstretch = True
         self.display = True
         self._dirty = True
 
+    def bubble(self, event):
+        """ Bubble an event from this to the root or until .fire() succeeds """
+        if not self.fire(event) and self.parent:
+            self.parent.bubble(event)
+
     def onfocus(self):
         pass
 
     def onunfocus(self):
-        pass
-
-    def onevent(self, kc):
-        """Returns True if the event was consumed"""
-        handler = None
-        for h in self.handlers:
-            if isinstance(h[0], str):
-                if kc.val == h[0]:
-                    handler = h
-            else:
-                if kc.val in h[0]:
-                    handler = h
-            if handler:
-                handler[1](kc)
-                break
-        return handler != None
-
-    def onmouse(self, me):
         pass
 
     def onchildfocused(self, c):
@@ -224,10 +211,10 @@ class ContainerView(View):
         _, c = self._focused_child_index()
         return c
 
-    def onevent(self, kc):
-        super(ContainerView, self).onevent(kc)
+    @event.handler("key", canreject = True, keys = ["<up>", "<down>", "\t"])
+    def _onkey(self, kc):
         # See if child can handle the event
-        if self.focused_child and self.focused_child.onevent(kc):
+        if self.focused_child and self.focused_child.fire(kc):
             return True
         # Can we handle it?
         if kc.val == "<up>" or kc.val == "\t" and kc.shift:
@@ -236,7 +223,8 @@ class ContainerView(View):
             return self.focus_next()
         return False
 
-    def onmouse(self, me):
+    @event.handler("mouse")
+    def _onmouse(self, me):
         if not self.children:
             return
         z = self.children[-1].zindex
@@ -247,7 +235,7 @@ class ContainerView(View):
             sme = me.shifted(c.canvas.x, c.canvas.y)
             # Will be always true for ContainerView, but could be false for subclasses
             if c.canvas.contains(sme.x, sme.y):
-                c.onmouse(sme)
+                c.fire(sme)
 
     def focus_next(self, step = 1):
         if len(self.children) == 0:
@@ -640,15 +628,13 @@ class Spacer(View):
 
 class Widget(View):
 
-    def onmouse(self, me):
-        if me.pressed and me.button == event.MouseEvent.LEFT and self.focusable:
+    @event.handler("mouse", pressed = True, button = event.MouseEvent.LEFT)
+    def _onmouse(self, me):
+        if self.focusable:
             if self.focusable and not self.focused:
                 self.focused = True
             else:
-                self.onclick(me)
-
-    def onclick(self, me):
-        pass
+                self.fire(event.ClickEvent())
 
     def onfocus(self):
         super(Widget, self).onfocus()
@@ -661,10 +647,11 @@ class Widget(View):
 
 class ValueWidget(Widget):
 
-    def __init__(self, value = None, onchange = lambda w, v: None):
+    def __init__(self, value = None, onvalue = None):
         super(ValueWidget, self).__init__()
         self._value = value
-        self.onchange = onchange
+        if onvalue:
+            self.bind("value", onvalue)
 
     @property
     def value(self):
@@ -672,8 +659,11 @@ class ValueWidget(Widget):
 
     @value.setter
     def value(self, v):
+        if self._value == v:
+            return
+        ev = event.ValueEvent(v, old = self._value, source = self)
         self._value = v
-        self.onchange(self, self._value)
+        self.fire(ev)
         self.update()
 
 
@@ -704,15 +694,17 @@ class Label(Widget):
 
 class Button(Widget):
 
-    def __init__(self, label = "Button", onpress = lambda w: None):
+    def __init__(self, label = "Button", onpress = None):
         super(Widget, self).__init__()
         self.label = label
-        self.onpress = onpress
-        self.handlers.append(("\r", lambda _: self.onpress(self)))
         self.vstretch = False
+        if onpress:
+            self.bind("press", onpress)
 
-    def onclick(self, me):
-        self.onpress(self)
+    @event.handler("click")
+    @event.handler("key", key = "\r")
+    def _onclick(self, me):
+        self.fire(event.PressEvent(self))
 
     def render(self):
         if self.focused:
@@ -737,65 +729,60 @@ class Button(Widget):
 
 class TextInput(ValueWidget):
 
-    def __init__(self, default = "", length = 12, onchange = lambda w, v: None,
+    def __init__(self, default = "", length = 12, onvalue = None,
             password = False):
-        super(TextInput, self).__init__(value = default, onchange = onchange)
+        super(TextInput, self).__init__(value = default, onvalue = onvalue)
         self.length = length
-        self.onchange = onchange
         self.value = default
         self.offset = 0
         self.cursor = len(self.value)
         self.password = password
         self.vstretch = False
-        self.handlers.extend([
-            ("\x7f", self._onbackspace),
-            ("<delete>", self._ondelete),
-            ("<left>", self._onleft),
-            ("<right>", self._onright),
-            ("<home>", self._onhome),
-            ("<end>", self._onend)])
 
+    @event.handler("key", key = "\x7f")
     def _onbackspace(self, kc):
         if self.cursor > 0:
             self.cursor -= 1
             self.offset -= 1
             self.value = self.value[:self.cursor] + self.value[self.cursor+1:]
 
+    @event.handler("key", key = "<delete>")
     def _ondelete(self, kc):
         if len(self.value):
             self.value = self.value[:self.cursor] + self.value[self.cursor+1:]
 
+    @event.handler("key", key = "<left>")
     def _onleft(self, kc):
         if self.cursor > 0:
             self.cursor -= 1
             if self.cursor < self.offset:
                 self.offset -= 1
 
+    @event.handler("key", key = "<right>")
     def _onright(self, kc):
         if self.cursor < len(self.value):
             self.cursor += 1
             if self.cursor > self.offset + self.length - 1:
                 self.offset += 1
 
+    @event.handler("key", key = "<home>")
     def _onhome(self, kc):
         self.cursor = 0
         self.offset = 0
 
+    @event.handler("key", key = "<end>")
     def _onend(self, kc):
         self.cursor = len(self.value)
         self.offset = len(self.value) - self.length + 1
 
-    def onevent(self, kc):
-        if super(TextInput, self).onevent(kc):
-            return True
-        if not kc.val[0] in "<!^\r\n\t":
-            self.cursor += 1
-            if self.cursor > self.offset + self.length - 1:
-                self.offset += 1
-            self.value = self.value[:self.cursor-1] + kc.val + \
-                    self.value[self.cursor-1:]
-            return True
-        return False
+    @event.handler("key", matcher = lambda ke: len(ke.val) == 1 and ke.val in string.printable \
+                                               and ke.val not in "\r\n\t\x0b\x0c")
+    def _onkey(self, kc):
+        self.cursor += 1
+        if self.cursor > self.offset + self.length - 1:
+            self.offset += 1
+        self.value = self.value[:self.cursor-1] + kc.val + \
+                self.value[self.cursor-1:]
 
     def render(self):
         self.canvas.clear()
@@ -850,8 +837,8 @@ class TextInput(ValueWidget):
 class Decade(ValueWidget):
 
     def __init__(self, digits, decimals = 0, value = 0, cursor = 0, max = None,
-            min = None):
-        super(Decade, self).__init__()
+            min = None, onvalue = None):
+        super(Decade, self).__init__(onvalue = onvalue)
         self.digits = digits
         self.decimals = decimals
         self.value = value
@@ -862,16 +849,13 @@ class Decade(ValueWidget):
         self.min = min if min is not None else -10 ** (self.digits - self.decimals) \
                 + 10 ** (-self.decimals)
         self._cannegative = self.min < 0
-        self.handlers.extend([
-            ("<right>", self._onright),
-            ("<left>", self._onleft),
-            ("+", self._add),
-            ("-", self._sub)])
 
+    @event.handler("key", key = "<right>")
     def _onright(self, kc):
         if self.cursor > 0:
             self.cursor -= 1
 
+    @event.handler("key", key = "<left>")
     def _onleft(self, kc):
         if self.cursor < self.digits - 1:
             self.cursor += 1
@@ -879,12 +863,14 @@ class Decade(ValueWidget):
     def _delta(self):
         return 10 ** (self.cursor - self.decimals)
 
+    @event.handler("key", key = "+")
     def _add(self, kc):
         if self.value + self._delta() <= self.max:
             self.value += self._delta()
         else:
             self.value = self.max
 
+    @event.handler("key", key = "-")
     def _sub(self, kc):
         if self.value - self._delta() >= self.min:
             self.value -= self._delta()
@@ -963,16 +949,14 @@ class Console(Widget):
 
 class Checkbox(ValueWidget):
 
-    def __init__(self, label = None, checked = False, onchange = lambda w, v: None):
-        super(Checkbox, self).__init__(value = checked, onchange = onchange)
+    def __init__(self, label = None, checked = False, onvalue = None):
+        super(Checkbox, self).__init__(value = checked, onvalue = onvalue)
         self.label = label
         self.vstretch = False
-        self.handlers.append(([" ", "\r"], self._change))
 
-    def onclick(self, me):
-        self._change(None)
-
-    def _change(self, kc):
+    @event.handler("click")
+    @event.handler("key", keys = [" ", "\r"])
+    def _change(self, _):
         self.value = not self.value
 
     def render(self):
@@ -990,45 +974,50 @@ class Checkbox(ValueWidget):
 
 class Radio(ValueWidget):
 
-    class Group(list):
+    class Group(event.EventSource, list):
 
-        def __init__(self, onchange = lambda w: None):
-            self.members = []
-            self.onchange = onchange
+        def __init__(self, onvalue = None):
+            super(Radio.Group, self).__init__()
+            if onvalue:
+                self.bind("value", onvalue)
 
-        def selected(self, radio):
-            for m in self.members:
+        @property
+        def selected(self):
+            for m in self:
                 if m.value:
                     return m
+            return None
 
         def select(self, radio):
-            if self.selected == radio:
-                return
+            old = self.selected
             for c in self:
                 if c != radio:
                     c.value = False
-            self.onchange(radio)
+                elif not c.value:
+                    c.value = True
+            if self.selected == old:
+                return
+            self.fire(event.ValueEvent(self.selected, old = old, source = self))
 
-    def __init__(self, label = "", checked = False):
-        super(Radio, self).__init__(value = checked,
-                onchange = self._onchange)
+    def __init__(self, label = "", checked = False, group = None):
+        super(Radio, self).__init__(value = checked)
         self.label = label
         self.vstretch = False
-        self.handlers.append(([" ", "\r"], self._toggle))
         self._group = None
+        self.group = group
 
-    def _onchange(self, w, v):
-        if v and self.group:
+    @event.handler("value", new = True)
+    def _onchange(self, ve):
+        if self.group:
             self.group.select(self)
 
-    def _toggle(self, kc):
-        self.value = not self.value
+    @event.handler("click")
+    @event.handler("key", keys = [" ", "\r"])
+    def _set(self, _):
+        self.value = True
 
     def _tick(self):
         return "(✓)" if self.value else "( )"
-
-    def onclick(self, me):
-        self._toggle(None)
 
     def render(self):
         s = self._tick()
