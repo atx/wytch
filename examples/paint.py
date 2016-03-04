@@ -36,7 +36,7 @@ class ColorButton(view.Widget):
 
     def render(self):
         self.canvas.square(0, 0, self.canvas.width, self.canvas.height,
-            bordercolor = self.color)
+                           self.color)
 
     def onmouse(self, me):
         if me.pressed:

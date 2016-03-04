@@ -73,10 +73,10 @@ class Canvas:
     def set(self, x, y, c, fg = colors.WHITE, bg = colors.BLACK, flags = 0):
         pass
 
-    def square(self, x, y, width, height, bordercolor = colors.WHITE):
+    def square(self, x, y, width, height, bg, c = " ", fg = colors.WHITE):
         for yi in range(y, y + height):
             for xi in range(x, x + width):
-                self.set(xi, yi, " ", fg = bordercolor, bg = bordercolor)
+                self.set(xi, yi, c, fg = fg, bg = bg)
 
     def hline(self, x, y, length, fg = colors.WHITE, bg = colors.BLACK,
             char = "─"):
