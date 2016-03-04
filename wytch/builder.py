@@ -43,8 +43,8 @@ class Builder:
     def spacer(self, *args, **kwargs):
         return self.add(view.Spacer(*args, **kwargs))
 
-    def hline(self, title = None):
-        return self.add(view.HLine(title = title))
+    def hline(self, *args, **kwargs):
+        return self.add(view.HLine(*args, **kwargs))
 
     def nest(self, cont):
         #self.view.add_child(cont)
@@ -52,22 +52,22 @@ class Builder:
         self.nested.append(ret)
         return ret
 
-    def align(self, halign = view.HOR_MID, valign = view.VER_MID):
-        return self.nest(view.Align(halign = halign, valign = valign))
+    def align(self, *args, **kwargs):
+        return self.nest(view.Align(*args, **kwargs))
 
-    def grid(self, width, height):
-        ret = GridBuilder(view.Grid(width, height), parent = self)
+    def grid(self, *args, **kwargs):
+        ret = GridBuilder(view.Grid(*args, **kwargs), parent = self)
         self.nested.append(ret)
         return ret
 
-    def vertical(self, width = 0):
-        return self.nest(view.Vertical(width = width))
+    def vertical(self, *args, **kwargs):
+        return self.nest(view.Vertical(*args, **kwargs))
 
-    def horizontal(self, height = 0):
-        return self.nest(view.Horizontal(height = height))
+    def horizontal(self, *args, **kwargs):
+        return self.nest(view.Horizontal(*args, **kwargs))
 
-    def box(self, title = None):
-        return self.nest(view.Box(title = title))
+    def box(self, *args, **kwargs):
+        return self.nest(view.Box(*args, **kwargs))
 
     def endall(self):
         self.end()
