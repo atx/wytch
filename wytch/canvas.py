@@ -144,6 +144,8 @@ class ConsoleCanvas(Canvas):
         self._flags = None
         self._oldattrs = termios.tcgetattr(sys.stdin.fileno())
         tty.setraw(sys.stdin.fileno())
+        # TODO: Write a proper terminfo parser
+        self._send_ansi("h", "?1049");
         #tty.setcbreak(sys.stdin.fileno())
         self._send_ansi("l", "?25") # Hide cursor
         self._send_ansi("h", "?1002") # Enable mouse reporting
@@ -231,6 +233,7 @@ class ConsoleCanvas(Canvas):
         self._set_cursor(0, 0)
         self._send_ansi("h", "?25") # Show cursor
         self._send_ansi("l", "?1002") # Disable mouse
+        self._send_ansi("l", "?1049");
         termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, self._oldattrs)
 
 
