@@ -40,8 +40,8 @@ class Builder:
             self.add(view.Label(s, fg = fg, bg = bg))
         return self
 
-    def spacer(self, width = 0, height = 0):
-        return self.add(view.Spacer(width = width, height = height))
+    def spacer(self, *args, **kwargs):
+        return self.add(view.Spacer(*args, **kwargs))
 
     def hline(self, title = None):
         return self.add(view.HLine(title = title))

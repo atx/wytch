@@ -625,11 +625,13 @@ class HLine(View):
 
 class Spacer(View):
 
-    def __init__(self, width = 1, height = 1):
+    def __init__(self, width = 1, height = 1, hstretch = False, vstretch = False):
         super(Spacer, self).__init__()
         self.focusable = False
         self.width = width
         self.height = height
+        self.hstretch = hstretch
+        self.vstretch = vstretch
 
     @property
     def size(self):
